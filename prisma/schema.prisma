@@ -1,0 +1,384 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  USER
+  ADMIN
+  SUPER_ADMIN
+}
+
+enum MatchStatus {
+  SCHEDULED
+  IN_PLAY
+  FINISHED
+  POSTPONED
+  CANCELLED
+}
+
+enum MatchSource {
+  API
+  MANUAL
+}
+
+enum ProcessingStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
+enum FactCategory {
+  TEAM
+  PLAYER
+  VENUE
+  HISTORY
+  RECORD
+  MATCH
+  TOURNAMENT
+  AI_INSIGHT
+}
+
+enum HighlightType {
+  DAILY
+  MATCH
+  PLAYER
+  VENUE
+  RECAP
+}
+
+enum MatchStage {
+  GROUP
+  ROUND_OF_32
+  ROUND_OF_16
+  QUARTER_FINAL
+  SEMI_FINAL
+  THIRD_PLACE
+  FINAL
+}
+
+enum SyncType {
+  TEAMS
+  STADIUMS
+  MATCHES
+  AI_HIGHLIGHTS
+  RECALCULATE_SCORES
+}
+
+enum SyncStatus {
+  RUNNING
+  SUCCESS
+  FAILED
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String?   @unique
+  emailVerified DateTime?
+  image         String?
+  role          Role      @default(USER)
+  teamId        String?
+  teamSelectedAt DateTime?
+  bonusPoints   Int       @default(0)
+  isActive      Boolean   @default(true)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  accounts              Account[]
+  sessions              Session[]
+  team                  Team?                  @relation(fields: [teamId], references: [id])
+  predictions           Prediction[]
+  tournamentPredictions TournamentPrediction[]
+  auditLogs             AuditLog[]
+  factRequests          FactRequestLog[]
+  insightEvents         MatchInsightEvent[]
+  highlightViews        HighlightView[]
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+model Group {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  
+  teams     Team[]
+  standings GroupStanding[]
+}
+
+model GroupStanding {
+  id           String @id @default(cuid())
+  groupId      String
+  teamId       String
+  played       Int    @default(0)
+  won          Int    @default(0)
+  drawn        Int    @default(0)
+  lost         Int    @default(0)
+  goalsFor     Int    @default(0)
+  goalsAgainst Int    @default(0)
+  points       Int    @default(0)
+
+  group        Group @relation(fields: [groupId], references: [id])
+  team         Team  @relation(fields: [teamId], references: [id])
+
+  @@unique([groupId, teamId])
+}
+
+model Team {
+  id          String   @id @default(cuid())
+  fifaId      String?  @unique
+  name        String
+  code        String?
+  country     String
+  flagUrl     String?
+  
+  groupId     String?
+  group       Group?   @relation(fields: [groupId], references: [id])
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  users       User[]
+  matchesHome Match[] @relation("HomeTeam")
+  matchesAway Match[] @relation("AwayTeam")
+  standings   GroupStanding[]
+}
+
+model Stadium {
+  id          String   @id @default(cuid())
+  name        String
+  city        String
+  country     String
+  capacity    Int?
+  imageUrl    String?
+
+  matches     Match[]
+}
+
+model Match {
+  id               String      @id @default(cuid())
+  externalMatchId  String      @unique 
+  source           MatchSource @default(API)
+  sourceProvider   String?
+  sourceId         String?
+
+  homeTeamId       String?
+  awayTeamId       String?
+  homeTeamName     String      // Denormalized for resilience
+  awayTeamName     String      // Denormalized for resilience
+
+  stadiumId        String?
+  
+  startTime        DateTime
+  status           MatchStatus @default(SCHEDULED)
+  stage            MatchStage  @default(GROUP)
+  
+  homeScore        Int?
+  awayScore        Int?
+  actualMaxGoals   Int?
+  winner           String?
+  isExtraTime      Boolean     @default(false)
+  isPenaltyShootout Boolean    @default(false)
+  pointsCalculated Boolean     @default(false)
+  pointMultiplier  Float       @default(1.0)
+  factsGenerated   Boolean     @default(false)
+  
+  createdAt        DateTime    @default(now())
+  updatedAt        DateTime    @updatedAt
+
+  homeTeam         Team?    @relation("HomeTeam", fields: [homeTeamId], references: [id])
+  awayTeam         Team?    @relation("AwayTeam", fields: [awayTeamId], references: [id])
+  stadium          Stadium? @relation(fields: [stadiumId], references: [id])
+
+  predictions     Prediction[]
+  matchProcessing MatchProcessing?
+  matchFacts      MatchFact[]
+  factRequests    FactRequestLog[]
+  insightEvents   MatchInsightEvent[]
+}
+
+model Prediction {
+  id                 String   @id @default(cuid())
+  userId             String
+  matchId            String
+  predictedWinner    String
+  predictedHomeGoals Int
+  predictedAwayGoals Int
+  predictedMaxGoals  Int?
+  pointsAwarded      Int?
+  scoredAt           DateTime?
+  scoringVersion     String?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  user  User  @relation(fields: [userId], references: [id])
+  match Match @relation(fields: [matchId], references: [id])
+
+  @@unique([userId, matchId])
+}
+
+model TournamentPrediction {
+  id                   String   @id @default(cuid())
+  userId               String
+  predictedWinner      String
+  predictedFinalistOne String
+  predictedFinalistTwo String
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id])
+}
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  action     String
+  userId     String?
+  entityType String
+  entityId   String
+  metadata   Json?
+  createdAt  DateTime @default(now())
+
+  user User? @relation(fields: [userId], references: [id])
+}
+
+model ScoringConfig {
+  id                     Int      @id @default(1)
+  winnerPoints           Int      @default(10)
+  exactScorePoints       Int      @default(25)
+  maxGoalsPoints         Int      @default(5)
+  perfectPredictionBonus Int      @default(20)
+  updatedAt              DateTime @updatedAt
+  updatedBy              String?
+}
+
+model MatchProcessing {
+  id          String           @id @default(cuid())
+  matchId     String           @unique
+  status      ProcessingStatus @default(PENDING)
+  attempts    Int              @default(0)
+  lastError   String?
+  startedAt   DateTime?
+  completedAt DateTime?
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  match Match @relation(fields: [matchId], references: [id])
+}
+
+model MatchFact {
+  id            String       @id @default(cuid())
+  matchId       String
+  fact          String
+  category      FactCategory
+  promptVersion String       @default("v1")
+  createdAt     DateTime     @default(now())
+
+  match         Match        @relation(fields: [matchId], references: [id])
+}
+
+model FactRequestLog {
+  id        String   @id @default(cuid())
+  userId    String
+  matchId   String
+  createdAt DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id])
+  match     Match    @relation(fields: [matchId], references: [id])
+}
+
+model MatchInsightEvent {
+  id        String   @id @default(cuid())
+  userId    String
+  matchId   String
+  createdAt DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id])
+  match     Match    @relation(fields: [matchId], references: [id])
+}
+
+model SystemMetric {
+  key       String   @id
+  value     Int
+  updatedAt DateTime @updatedAt
+}
+
+model AIHighlight {
+  id            String        @id @default(cuid())
+  title         String
+  content       String
+  category      FactCategory
+  type          HighlightType @default(DAILY)
+  date          DateTime
+  generatedBy   String
+  promptVersion String        @default("v1")
+  modelUsed     String        @default("meta-llama/Meta-Llama-3.1-8B-Instruct")
+  createdAt     DateTime      @default(now())
+
+  views         HighlightView[]
+}
+
+model HighlightView {
+  id          String      @id @default(cuid())
+  userId      String
+  highlightId String
+  viewedAt    DateTime    @default(now())
+
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  highlight   AIHighlight @relation(fields: [highlightId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, highlightId])
+}
+
+model SyncJob {
+  id               String     @id @default(cuid())
+  type             SyncType
+  status           SyncStatus
+  startedAt        DateTime   @default(now())
+  completedAt      DateTime?
+  recordsProcessed Int        @default(0)
+  error            String?
+}
+
+model TournamentConfig {
+  id           Int       @id @default(1)
+  currentStage String?
+  apiVersion   String?
+  lastSyncAt   DateTime?
+}

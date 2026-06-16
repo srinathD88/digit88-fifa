@@ -1,0 +1,245 @@
+import { MatchProvider } from "./MatchProvider";
+import { prisma } from "@/lib/prisma";
+import { MatchStatus, MatchSource, SyncType, SyncStatus, MatchStage } from "@prisma/client";
+
+export class WorldCup26Provider implements MatchProvider {
+  private baseUrl: string = "https://worldcup26.ir/get";
+
+  private async fetchApi(endpoint: string) {
+    try {
+      const response = await fetch(`${this.baseUrl}${endpoint}`);
+      if (!response.ok) throw new Error(`API error: ${response.statusText}`);
+      return await response.json();
+    } catch (err) {
+      console.error(`[WorldCup26Provider] Fetch failed for ${endpoint}:`, err);
+      return null;
+    }
+  }
+
+  private async logSync(type: SyncType, status: SyncStatus, records: number, errorMsg?: string) {
+    return prisma.syncJob.create({
+      data: {
+        type,
+        status,
+        recordsProcessed: records,
+        error: errorMsg,
+        completedAt: status !== 'RUNNING' ? new Date() : null,
+      }
+    });
+  }
+
+  async syncTeams(): Promise<void> {
+    console.log("[WorldCup26Provider] Syncing teams...");
+    const job = await this.logSync("TEAMS", "RUNNING", 0);
+    
+    try {
+      const data = await this.fetchApi("/teams");
+      if (!data || !data.teams) throw new Error("Invalid teams data from API");
+
+      let count = 0;
+      for (const t of data.teams) {
+        // Group upsert
+        let group = null;
+        if (t.groups) {
+          const groupName = `Group ${t.groups}`;
+          group = await prisma.group.upsert({
+            where: { name: groupName },
+            update: {},
+            create: { name: groupName }
+          });
+        }
+
+        await prisma.team.upsert({
+          where: { fifaId: t.fifa_code },
+          update: {
+            name: t.name_en,
+            code: t.iso2,
+            flagUrl: t.flag,
+            country: t.name_en,
+            groupId: group?.id
+          },
+          create: {
+            id: t.id.toString(), // Use API ID for easy relation mapping later
+            fifaId: t.fifa_code,
+            name: t.name_en,
+            code: t.iso2,
+            flagUrl: t.flag,
+            country: t.name_en,
+            groupId: group?.id
+          }
+        });
+        count++;
+      }
+
+      await prisma.syncJob.update({
+        where: { id: job.id },
+        data: { status: "SUCCESS", recordsProcessed: count, completedAt: new Date() }
+      });
+      console.log(`[WorldCup26Provider] Teams sync complete. Processed ${count} teams.`);
+    } catch (e: any) {
+      await prisma.syncJob.update({
+        where: { id: job.id },
+        data: { status: "FAILED", error: e.message, completedAt: new Date() }
+      });
+    }
+  }
+
+  async syncStadiums(): Promise<void> {
+    console.log("[WorldCup26Provider] Syncing stadiums...");
+    const job = await this.logSync("STADIUMS", "RUNNING", 0);
+
+    try {
+      const data = await this.fetchApi("/stadiums");
+      if (!data || !data.stadiums) throw new Error("Invalid stadiums data from API");
+
+      let count = 0;
+      for (const s of data.stadiums) {
+        await prisma.stadium.upsert({
+          where: { id: s.id.toString() }, // Using the string API ID directly
+          update: {
+            name: s.name_en,
+            city: s.city_en,
+            country: s.country_en,
+            capacity: s.capacity
+          },
+          create: {
+            id: s.id.toString(),
+            name: s.name_en,
+            city: s.city_en,
+            country: s.country_en,
+            capacity: s.capacity
+          }
+        });
+        count++;
+      }
+
+      await prisma.syncJob.update({
+        where: { id: job.id },
+        data: { status: "SUCCESS", recordsProcessed: count, completedAt: new Date() }
+      });
+      console.log(`[WorldCup26Provider] Stadiums sync complete. Processed ${count} stadiums.`);
+    } catch (e: any) {
+      await prisma.syncJob.update({
+        where: { id: job.id },
+        data: { status: "FAILED", error: e.message, completedAt: new Date() }
+      });
+    }
+  }
+
+  async syncFixtures(): Promise<void> {
+    await this.processGamesSync();
+  }
+
+  async syncResults(): Promise<void> {
+    // Both fixtures and results come from /games in WorldCup26 API
+    await this.processGamesSync();
+  }
+
+  private async processGamesSync(): Promise<void> {
+    console.log("[WorldCup26Provider] Syncing games...");
+    const job = await this.logSync("MATCHES", "RUNNING", 0);
+
+    try {
+      const data = await this.fetchApi("/games");
+      if (!data || !data.games) throw new Error("Invalid games data from API");
+
+      let count = 0;
+      for (const game of data.games) {
+        const externalId = game.id.toString();
+
+        const existingMatch = await prisma.match.findUnique({
+          where: { externalMatchId: externalId }
+        });
+
+        if (existingMatch && existingMatch.source === 'MANUAL') {
+          continue; // Skip API update if manually overridden
+        }
+
+        // Date parsing: API provides "06/13/2026 21:00"
+        let startTime = new Date(game.local_date);
+        if (isNaN(startTime.getTime())) {
+          startTime = new Date(); // Fallback
+        }
+
+        let status: MatchStatus = "SCHEDULED";
+        if (game.time_elapsed === "finished" || game.finished === "TRUE") status = "FINISHED";
+        else if (game.time_elapsed !== "notstarted") status = "IN_PLAY";
+
+        let stage: MatchStage = "GROUP";
+        const typeStr = (game.type || "").toLowerCase();
+        if (typeStr.includes("32")) stage = "ROUND_OF_32";
+        else if (typeStr.includes("16")) stage = "ROUND_OF_16";
+        else if (typeStr.includes("quarter")) stage = "QUARTER_FINAL";
+        else if (typeStr.includes("semi")) stage = "SEMI_FINAL";
+        else if (typeStr.includes("third")) stage = "THIRD_PLACE";
+        else if (typeStr.includes("final")) stage = "FINAL";
+
+        const homeScore = game.home_score ? parseInt(game.home_score) : null;
+        const awayScore = game.away_score ? parseInt(game.away_score) : null;
+        const homeTeamName = game.home_team_name_en || game.home_team_label || "TBD";
+        const awayTeamName = game.away_team_name_en || game.away_team_label || "TBD";
+
+        let winner = null;
+        if (status === "FINISHED" && homeScore !== null && awayScore !== null) {
+          if (homeScore > awayScore) winner = homeTeamName;
+          else if (awayScore > homeScore) winner = awayTeamName;
+          else winner = "DRAW";
+        }
+
+        const dbMatch = await prisma.match.upsert({
+          where: { externalMatchId: externalId },
+          update: {
+            startTime,
+            status,
+            stage,
+            homeScore: isNaN(homeScore!) ? null : homeScore,
+            awayScore: isNaN(awayScore!) ? null : awayScore,
+            winner,
+            homeTeamName,
+            awayTeamName,
+            homeTeamId: game.home_team_id === "0" ? null : game.home_team_id?.toString(),
+            awayTeamId: game.away_team_id === "0" ? null : game.away_team_id?.toString(),
+            stadiumId: game.stadium_id?.toString()
+          },
+          create: {
+            externalMatchId: externalId,
+            source: "API",
+            sourceProvider: "WORLDCUP26",
+            sourceId: externalId,
+            homeTeamName: homeTeamName,
+            awayTeamName: awayTeamName,
+            homeTeamId: game.home_team_id === "0" ? null : game.home_team_id?.toString(),
+            awayTeamId: game.away_team_id === "0" ? null : game.away_team_id?.toString(),
+            stadiumId: game.stadium_id?.toString(),
+            startTime,
+            status,
+            stage,
+            homeScore: isNaN(homeScore!) ? null : homeScore,
+            awayScore: isNaN(awayScore!) ? null : awayScore,
+            winner
+          }
+        });
+
+        if (status === 'FINISHED' && !dbMatch.pointsCalculated) {
+          await prisma.matchProcessing.upsert({
+            where: { matchId: dbMatch.id },
+            update: {},
+            create: { matchId: dbMatch.id, status: 'PENDING' }
+          });
+        }
+        count++;
+      }
+
+      await prisma.syncJob.update({
+        where: { id: job.id },
+        data: { status: "SUCCESS", recordsProcessed: count, completedAt: new Date() }
+      });
+      console.log(`[WorldCup26Provider] Games sync complete. Processed ${count} matches.`);
+    } catch (e: any) {
+      await prisma.syncJob.update({
+        where: { id: job.id },
+        data: { status: "FAILED", error: e.message, completedAt: new Date() }
+      });
+    }
+  }
+}
