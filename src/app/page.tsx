@@ -55,9 +55,9 @@ export default async function Dashboard() {
     include: { homeTeam: true, awayTeam: true }
   });
 
-  const userPredictions = session?.user?.id ? await prisma.prediction.findMany({
-    where: { userId: session.user.id }
-  }) : [];
+  const userPredictions = await prisma.prediction.findMany({
+    where: { userId: session.user!.id }
+  });
 
   const predMap = userPredictions.reduce((acc, p) => {
     acc[p.matchId] = p;
@@ -170,7 +170,7 @@ export default async function Dashboard() {
     <div className="container mx-auto py-12 px-4 relative z-10 overflow-hidden">
       <Header />
       
-      <DailyHighlights userId={session.user.id as string} />
+      <DailyHighlights userId={session.user?.id || ""} />
 
       <Tabs defaultValue="today" className="w-full">
         <TabsList className="grid w-full grid-cols-4 h-14 bg-black/40 border border-border/50 rounded-xl p-1">

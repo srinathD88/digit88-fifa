@@ -34,10 +34,10 @@ async function selectTeam(formData: FormData) {
 
 export default async function TeamSelectionPage() {
   const session = await auth();
-  if (!session) redirect("/");
+  if (!session?.user?.id) redirect("/");
 
   // If user already has a team, redirect them away (middleware also handles this, but double check)
-  const dbUser = await prisma.user.findUnique({ where: { id: session.user.id! } });
+  const dbUser = await prisma.user.findUnique({ where: { id: session.user.id } });
   if (dbUser?.teamId) {
     redirect("/");
   }

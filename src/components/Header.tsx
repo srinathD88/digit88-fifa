@@ -8,7 +8,7 @@ import { Digit88Logo } from "@/components/Digit88Logo";
 export async function Header() {
   const session = await auth();
 
-  if (!session) return null;
+  if (!session?.user) return null;
 
   const isAdmin = (session.user as any).role === "ADMIN" || (session.user as any).role === "SUPER_ADMIN";
 

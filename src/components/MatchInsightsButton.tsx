@@ -77,7 +77,7 @@ export function MatchInsightsButton({ matchId }: { matchId: string }) {
           {error && !loading && (
             <div className="text-destructive p-4 bg-destructive/10 rounded-xl border border-destructive/20">
               <p className="font-semibold">{error}</p>
-              <Button variant="outline" className="mt-4 w-full" onClick={fetchInsights}>Try Again</Button>
+              <Button variant="outline" className="mt-4 w-full" onClick={() => fetchInsights()}>Try Again</Button>
             </div>
           )}
 
