@@ -170,7 +170,7 @@ export default async function Dashboard() {
     <div className="container mx-auto py-12 px-4 relative z-10 overflow-hidden">
       <Header />
       
-      <DailyHighlights userId={session.user.id} />
+      <DailyHighlights userId={session.user.id as string} />
 
       <Tabs defaultValue="today" className="w-full">
         <TabsList className="grid w-full grid-cols-4 h-14 bg-black/40 border border-border/50 rounded-xl p-1">
