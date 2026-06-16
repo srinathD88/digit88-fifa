@@ -92,13 +92,13 @@ export default async function Dashboard() {
               <CardHeader>
                 <CardTitle className="text-2xl flex justify-between items-center w-full">
                   <div className="flex items-center gap-2">
-                    <img src={match.homeTeam?.flagUrl} alt="" className="w-8 h-6 rounded shadow-sm object-cover" />
+                    <img src={match.homeTeam?.flagUrl || undefined} alt="" className="w-8 h-6 rounded shadow-sm object-cover" />
                     <span className="font-bold">{match.homeTeamName}</span>
                   </div>
                   <span className="text-muted-foreground mx-2 text-sm uppercase tracking-widest font-black">vs</span>
                   <div className="flex items-center gap-2">
                     <span className="font-bold">{match.awayTeamName}</span>
-                    <img src={match.awayTeam?.flagUrl} alt="" className="w-8 h-6 rounded shadow-sm object-cover" />
+                    <img src={match.awayTeam?.flagUrl || undefined} alt="" className="w-8 h-6 rounded shadow-sm object-cover" />
                   </div>
                 </CardTitle>
                 <p className="text-sm font-medium text-accent">

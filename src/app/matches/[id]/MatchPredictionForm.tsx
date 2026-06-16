@@ -46,7 +46,7 @@ export function MatchPredictionForm({ match, prediction, isLocked }: any) {
           <div className="flex items-center justify-center gap-12 mb-6">
             <div className="flex flex-col items-center gap-4">
               {match.homeTeam?.flagUrl ? (
-                <img src={match.homeTeam.flagUrl} alt={match.homeTeamName} className="w-24 h-16 object-cover rounded-md shadow-lg" />
+                <img src={match.homeTeam.flagUrl || undefined} alt={match.homeTeamName} className="w-24 h-16 object-cover rounded-md shadow-lg" />
               ) : (
                 <div className="w-24 h-16 bg-white/10 rounded-md flex items-center justify-center text-3xl">⚽</div>
               )}
@@ -57,7 +57,7 @@ export function MatchPredictionForm({ match, prediction, isLocked }: any) {
             
             <div className="flex flex-col items-center gap-4">
               {match.awayTeam?.flagUrl ? (
-                <img src={match.awayTeam.flagUrl} alt={match.awayTeamName} className="w-24 h-16 object-cover rounded-md shadow-lg" />
+                <img src={match.awayTeam.flagUrl || undefined} alt={match.awayTeamName} className="w-24 h-16 object-cover rounded-md shadow-lg" />
               ) : (
                 <div className="w-24 h-16 bg-white/10 rounded-md flex items-center justify-center text-3xl">⚽</div>
               )}

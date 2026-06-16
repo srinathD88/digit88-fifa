@@ -72,7 +72,7 @@ export default async function TeamSelectionPage() {
                 >
                   <div className="group-hover:scale-110 transition-transform flex items-center justify-center">
                     {team.flagUrl ? (
-                      <img src={team.flagUrl} alt={team.name} className="w-12 h-8 object-cover rounded shadow-md" />
+                      <img src={team.flagUrl || undefined} alt={team.name} className="w-12 h-8 object-cover rounded shadow-md" />
                     ) : (
                       <span className="text-3xl">⚽</span>
                     )}
