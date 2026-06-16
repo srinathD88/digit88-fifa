@@ -17,19 +17,17 @@ Welcome to the FIFA 2026 Prediction App! This is a full-stack Next.js web applic
 
 ## 📸 Screenshots
 
-*(Replace these placeholders with actual image links after deployment)*
-
 ### Login Page
-![Login Page](/screenshots/login.png)
+<img width="3048" height="1542" alt="image" src="https://github.com/user-attachments/assets/29c5cc8b-fad1-4421-89f3-17dddddb7dce" />
 
 ### Match Dashboard
-![Match Dashboard](/screenshots/dashboard.png)
+<img width="3018" height="1718" alt="image" src="https://github.com/user-attachments/assets/2245afba-78d2-4838-8bda-0930a70b3e51" />
 
 ### Leaderboard
-![Leaderboard](/screenshots/leaderboard.png)
+<img width="2920" height="1712" alt="image" src="https://github.com/user-attachments/assets/c33be656-6d82-42a8-9ec1-3e85ba8424d4" />
 
 ### Admin Portal
-![Admin Portal](/screenshots/admin.png)
+<img width="3014" height="1378" alt="image" src="https://github.com/user-attachments/assets/52064802-e4d2-435e-a574-93422d5e402c" />
 
 ---
 
