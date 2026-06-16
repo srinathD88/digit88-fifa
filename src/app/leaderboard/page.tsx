@@ -6,7 +6,7 @@ import { getIndividualLeaderboard, getTeamLeaderboard } from "@/services/leaderb
 
 export default async function LeaderboardPage() {
   const session = await auth();
-  if (!session) redirect("/");
+  if (!session?.user) redirect("/");
 
   if (!(session.user as any).teamId) {
     redirect("/team-selection");

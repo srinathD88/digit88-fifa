@@ -14,7 +14,7 @@ export default async function MatchPredictionPage(props: { params: Promise<{ id:
   const params = await props.params;
   const matchId = params.id;
   const session = await auth();
-  if (!session) redirect("/");
+  if (!session?.user) redirect("/");
 
   if (!(session.user as any).teamId) {
     redirect("/team-selection");

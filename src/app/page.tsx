@@ -14,7 +14,7 @@ import { Digit88Logo } from "@/components/Digit88Logo";
 
 export default async function Dashboard() {
   const session = await auth();
-  if (!session) {
+  if (!session?.user) {
     // If we have no session, we show a beautiful landing page with sign-in
     return (
       <div className="flex min-h-screen items-center justify-center relative overflow-hidden">
