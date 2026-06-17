@@ -9,7 +9,7 @@ import { getUserLeaderboardStats } from "@/services/leaderboard.service";
 export async function Header() {
   const session = await auth();
 
-  if (!session?.user) return null;
+  if (!session?.user?.id) return null;
 
   const isAdmin = (session.user as any).role === "ADMIN" || (session.user as any).role === "SUPER_ADMIN";
 
