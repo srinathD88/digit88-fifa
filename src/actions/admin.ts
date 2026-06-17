@@ -3,6 +3,7 @@
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
+import { processPendingMatches } from "@/services/scoring.service";
 
 async function verifyAdmin() {
   const session = await auth();
@@ -257,6 +258,9 @@ export async function recalculateAllScoresAction() {
         create: { matchId: match.id, status: "PENDING" }
       });
     }
+
+    // Process them immediately instead of waiting for the cron job
+    await processPendingMatches();
 
     await prisma.syncJob.update({
       where: { id: job.id },

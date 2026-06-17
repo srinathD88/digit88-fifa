@@ -36,7 +36,7 @@ export async function submitPrediction(formData: FormData) {
   const match = await prisma.match.findUnique({ where: { id: matchId } });
   if (!match) throw new Error("Match not found");
   
-  if (new Date() >= match.startTime) {
+  if (new Date() >= match.startTime || match.status !== 'SCHEDULED') {
     throw new Error("Match predictions are locked.");
   }
 

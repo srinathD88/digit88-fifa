@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { unstable_cache } from "next/cache";
 
 export async function getIndividualLeaderboard() {
   const userScores = await prisma.prediction.groupBy({
@@ -42,3 +43,21 @@ export async function getTeamLeaderboard() {
     };
   }).sort((a, b) => b.totalPoints - a.totalPoints);
 }
+
+export const getUserLeaderboardStats = unstable_cache(
+  async (userId: string) => {
+    const leaderboard = await getIndividualLeaderboard();
+    const index = leaderboard.findIndex(u => u.userId === userId);
+    
+    if (index === -1) return null;
+    
+    return {
+      points: leaderboard[index].points,
+      rank: index + 1,
+      team: leaderboard[index].team,
+      flagUrl: leaderboard[index].flagUrl,
+    };
+  },
+  ['user-leaderboard-stats'],
+  { revalidate: 300 }
+);

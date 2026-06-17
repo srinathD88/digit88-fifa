@@ -4,6 +4,7 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { HeaderNav } from "@/components/HeaderNav";
 import { Digit88Logo } from "@/components/Digit88Logo";
+import { getUserLeaderboardStats } from "@/services/leaderboard.service";
 
 export async function Header() {
   const session = await auth();
@@ -12,13 +13,11 @@ export async function Header() {
 
   const isAdmin = (session.user as any).role === "ADMIN" || (session.user as any).role === "SUPER_ADMIN";
 
-  let teamFlagUrl = null;
-  if ((session.user as any).teamId) {
-    const userTeam = await prisma.team.findUnique({ where: { id: (session.user as any).teamId } });
-    if (userTeam) {
-      teamFlagUrl = userTeam.flagUrl;
-    }
-  }
+  const stats = await getUserLeaderboardStats(session.user.id);
+  const teamName = stats?.team || "No Team";
+  const points = stats?.points || 0;
+  const rank = stats?.rank || "-";
+  const flagUrl = stats?.flagUrl || null;
 
   return (
     <header className="flex justify-between items-center mb-10 border-b border-border/40 pb-6 relative z-10">
@@ -30,11 +29,19 @@ export async function Header() {
       </div>
       
       <div className="flex items-center gap-4">
-        <div className="text-right hidden md:block">
-          <p className="font-medium text-sm text-muted-foreground flex items-center">
-            {teamFlagUrl && <img src={teamFlagUrl} alt="Team" className="mr-2 w-6 h-4 rounded-sm object-cover" />}
+        <div className="text-right hidden md:flex flex-col items-end gap-0.5">
+          <p className="font-bold text-sm flex items-center">
+            {flagUrl && <img src={flagUrl} alt={teamName} className="mr-2 w-5 h-3.5 rounded-sm object-cover shadow-sm" />}
             {session.user.name}
           </p>
+          <div className="flex items-center gap-2">
+            {teamName !== "No Team" && (
+              <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold">{teamName}</span>
+            )}
+            <div className="flex items-center text-xs font-black text-amber-500">
+              <span className="mr-1">🏆</span> #{rank} • {points} pts
+            </div>
+          </div>
         </div>
         <form action={async () => {
           "use server"

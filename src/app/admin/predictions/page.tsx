@@ -1,6 +1,8 @@
 import { prisma } from "@/lib/prisma";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { format } from "date-fns";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { PredictionsTable } from "./PredictionsTable";
 
 export default async function PredictionsDashboardPage() {
   // 1. Fetch Top Supported Teams
@@ -32,14 +34,34 @@ export default async function PredictionsDashboardPage() {
 
   const totalPredictions = matches.reduce((sum, m) => sum + m.predictions.length, 0);
 
+  const allPredictions = await prisma.prediction.findMany({
+    include: {
+      user: {
+        include: { team: true }
+      },
+      match: {
+        include: { homeTeam: true, awayTeam: true }
+      }
+    },
+    orderBy: { createdAt: 'desc' }
+  });
+
   return (
     <div className="space-y-8 pb-12">
       <div>
         <h1 className="text-3xl font-extrabold mb-2 text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-emerald-400">
           Prediction Analytics
         </h1>
-        <p className="text-muted-foreground">Community sentiment and consensus across all active matches.</p>
+        <p className="text-muted-foreground">Community sentiment, consensus, and raw predictions data across all active matches.</p>
       </div>
+
+      <Tabs defaultValue="analytics" className="w-full">
+        <TabsList className="grid w-full grid-cols-2 max-w-md h-12 mb-6 bg-black/40 border border-border/50 rounded-xl p-1">
+          <TabsTrigger value="analytics" className="text-sm font-bold rounded-lg data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Analytics Dashboard</TabsTrigger>
+          <TabsTrigger value="table" className="text-sm font-bold rounded-lg data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Predictions Table</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="analytics" className="space-y-8">
 
       {/* High Level Stats */}
       <div className="grid gap-6 md:grid-cols-3">
@@ -226,6 +248,12 @@ export default async function PredictionsDashboardPage() {
           </div>
         )}
       </div>
+      </TabsContent>
+
+      <TabsContent value="table">
+        <PredictionsTable predictions={allPredictions} />
+      </TabsContent>
+      </Tabs>
     </div>
   );
 }

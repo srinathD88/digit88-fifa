@@ -28,6 +28,45 @@ export class WorldCup26Provider implements MatchProvider {
     });
   }
 
+  private parseScorers(scorerRaw: any): string[] {
+    if (!scorerRaw || scorerRaw === "null" || scorerRaw === "") return [];
+    
+    // Safely cast to string to prevent .trim() failures if API returns arrays/numbers
+    let s = typeof scorerRaw === 'string' ? scorerRaw : String(scorerRaw);
+    s = s.trim();
+    
+    if (s.startsWith("{")) s = s.substring(1);
+    if (s.endsWith("}")) s = s.substring(0, s.length - 1);
+    
+    const parts = s.split(",");
+    const players: string[] = [];
+    for (let part of parts) {
+      part = part.replace(/["“”\\]/g, "").trim();
+      if (!part) continue;
+      const match = part.match(/^(.*?)\s+\d/);
+      if (match) {
+        players.push(match[1].trim());
+      } else {
+        players.push(part);
+      }
+    }
+    return players;
+  }
+
+  private calculateMaxGoals(homeStr: string | null | undefined, awayStr: string | null | undefined): number {
+    const players = [...this.parseScorers(homeStr), ...this.parseScorers(awayStr)];
+    if (players.length === 0) return 0;
+    
+    const counts: Record<string, number> = {};
+    let max = 0;
+    for (const p of players) {
+      if (!p) continue;
+      counts[p] = (counts[p] || 0) + 1;
+      if (counts[p] > max) max = counts[p];
+    }
+    return max;
+  }
+
   async syncTeams(): Promise<void> {
     console.log("[WorldCup26Provider] Syncing teams...");
     const job = await this.logSync("TEAMS", "RUNNING", 0);
@@ -186,6 +225,11 @@ export class WorldCup26Provider implements MatchProvider {
           else winner = "DRAW";
         }
 
+        let actualMaxGoals: number | null = null;
+        if (status === "FINISHED") {
+          actualMaxGoals = this.calculateMaxGoals(game.home_scorers, game.away_scorers);
+        }
+
         const dbMatch = await prisma.match.upsert({
           where: { externalMatchId: externalId },
           update: {
@@ -194,12 +238,13 @@ export class WorldCup26Provider implements MatchProvider {
             stage,
             homeScore: isNaN(homeScore!) ? null : homeScore,
             awayScore: isNaN(awayScore!) ? null : awayScore,
+            actualMaxGoals,
             winner,
             homeTeamName,
             awayTeamName,
-            homeTeamId: game.home_team_id === "0" ? null : game.home_team_id?.toString(),
-            awayTeamId: game.away_team_id === "0" ? null : game.away_team_id?.toString(),
-            stadiumId: game.stadium_id?.toString()
+            homeTeamId: !game.home_team_id || game.home_team_id === "0" ? null : game.home_team_id.toString(),
+            awayTeamId: !game.away_team_id || game.away_team_id === "0" ? null : game.away_team_id.toString(),
+            stadiumId: game.stadium_id ? game.stadium_id.toString() : null
           },
           create: {
             externalMatchId: externalId,
@@ -208,14 +253,15 @@ export class WorldCup26Provider implements MatchProvider {
             sourceId: externalId,
             homeTeamName: homeTeamName,
             awayTeamName: awayTeamName,
-            homeTeamId: game.home_team_id === "0" ? null : game.home_team_id?.toString(),
-            awayTeamId: game.away_team_id === "0" ? null : game.away_team_id?.toString(),
-            stadiumId: game.stadium_id?.toString(),
+            homeTeamId: !game.home_team_id || game.home_team_id === "0" ? null : game.home_team_id.toString(),
+            awayTeamId: !game.away_team_id || game.away_team_id === "0" ? null : game.away_team_id.toString(),
+            stadiumId: game.stadium_id ? game.stadium_id.toString() : null,
             startTime,
             status,
             stage,
             homeScore: isNaN(homeScore!) ? null : homeScore,
             awayScore: isNaN(awayScore!) ? null : awayScore,
+            actualMaxGoals,
             winner
           }
         });

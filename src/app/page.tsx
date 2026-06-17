@@ -85,23 +85,23 @@ export default async function Dashboard() {
       <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3 mt-6">
         {matchList.map(match => {
           const prediction = predMap[match.id];
-          const isLocked = new Date() >= match.startTime;
+          const isLocked = new Date() >= match.startTime || match.status !== 'SCHEDULED';
 
           return (
             <Card key={match.id} className="glass-card transition-all duration-300 hover:scale-[1.03] hover:shadow-[0_0_30px_rgba(150,50,150,0.15)] flex flex-col justify-between">
               <CardHeader>
-                <CardTitle className="text-2xl flex justify-between items-center w-full">
-                  <div className="flex items-center gap-2">
-                    <img src={match.homeTeam?.flagUrl || undefined} alt="" className="w-8 h-6 rounded shadow-sm object-cover" />
-                    <span className="font-bold">{match.homeTeamName}</span>
+                <CardTitle className="w-full grid grid-cols-[1fr_auto_1fr] items-center gap-2 text-xl">
+                  <div className="flex items-center justify-end gap-2 text-right">
+                    <span className="font-bold line-clamp-2 leading-tight">{match.homeTeamName}</span>
+                    <img src={match.homeTeam?.flagUrl || undefined} alt="" className="w-8 h-6 rounded shadow-sm object-cover shrink-0" />
                   </div>
-                  <span className="text-muted-foreground mx-2 text-sm uppercase tracking-widest font-black">vs</span>
-                  <div className="flex items-center gap-2">
-                    <span className="font-bold">{match.awayTeamName}</span>
-                    <img src={match.awayTeam?.flagUrl || undefined} alt="" className="w-8 h-6 rounded shadow-sm object-cover" />
+                  <span className="text-muted-foreground px-2 text-sm uppercase tracking-widest font-black shrink-0 text-center">vs</span>
+                  <div className="flex items-center justify-start gap-2 text-left">
+                    <img src={match.awayTeam?.flagUrl || undefined} alt="" className="w-8 h-6 rounded shadow-sm object-cover shrink-0" />
+                    <span className="font-bold line-clamp-2 leading-tight">{match.awayTeamName}</span>
                   </div>
                 </CardTitle>
-                <p className="text-sm font-medium text-accent">
+                <p className="text-sm font-medium text-accent text-center pt-4">
                   {new Date(match.startTime).toLocaleString(undefined, { weekday: 'short', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
                 </p>
               </CardHeader>

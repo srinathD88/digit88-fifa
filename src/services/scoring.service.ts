@@ -32,8 +32,18 @@ export async function calculateScoresForMatch(matchId: string) {
     }
 
     // 2. Fetch Scoring Configs
-    const configs = await prisma.scoringConfig.findFirst({ where: { id: 1 } });
-    if (!configs) throw new Error("Scoring Config not found");
+    let configs = await prisma.scoringConfig.findFirst({ where: { id: 1 } });
+    if (!configs) {
+      configs = {
+        id: 1,
+        winnerPoints: 10,
+        exactScorePoints: 25,
+        maxGoalsPoints: 5,
+        perfectPredictionBonus: 20,
+        updatedAt: new Date(),
+        updatedBy: null
+      };
+    }
 
     const WINNER_PTS = configs.winnerPoints;
     const EXACT_SCORE_PTS = configs.exactScorePoints;
@@ -124,6 +134,7 @@ export async function calculateScoresForMatch(matchId: string) {
     });
 
   } catch (error: any) {
+    console.error(`[ScoringService] Failed to calculate scores for match ${matchId}:`, error);
     await prisma.matchProcessing.update({
       where: { matchId },
       data: {

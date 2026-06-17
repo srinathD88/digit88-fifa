@@ -30,7 +30,7 @@ export default async function MatchPredictionPage(props: { params: Promise<{ id:
     where: { userId_matchId: { userId: session.user.id, matchId } }
   }) : null;
 
-  const isLocked = new Date() >= match.startTime;
+  const isLocked = new Date() >= match.startTime || match.status !== 'SCHEDULED';
 
   return (
     <div className="container mx-auto py-12 px-4 max-w-3xl relative z-10">
