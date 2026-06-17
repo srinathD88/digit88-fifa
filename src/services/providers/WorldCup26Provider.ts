@@ -194,10 +194,11 @@ export class WorldCup26Provider implements MatchProvider {
           continue; // Skip API update if manually overridden
         }
 
-        // Date parsing: API provides "06/13/2026 21:00"
-        let startTime = new Date(game.local_date);
+        // Date parsing: API local_date is provided without timezone but is actually UTC.
+        let startTime = new Date(game.local_date + " UTC");
         if (isNaN(startTime.getTime())) {
-          startTime = new Date(); // Fallback
+          startTime = new Date(game.local_date); // Fallback
+          if (isNaN(startTime.getTime())) startTime = new Date();
         }
 
         let status: MatchStatus = "SCHEDULED";

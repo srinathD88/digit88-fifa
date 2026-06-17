@@ -73,7 +73,7 @@ export function MatchPredictionForm({ match, prediction, isLocked }: any) {
               <span>📍</span> {match.stadium?.city || "TBD"}
             </div>
             <div className="flex items-center gap-2">
-              <span>⏰</span> {new Date(match.startTime).toLocaleString(undefined, { weekday: 'short', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+              <span>⏰</span> {new Date(match.startTime).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', weekday: 'short', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })} IST
             </div>
             <div className="flex items-center gap-2 px-2 py-1 bg-primary/20 text-primary rounded text-xs font-bold uppercase">
               {match.stage.replace('_', ' ')}

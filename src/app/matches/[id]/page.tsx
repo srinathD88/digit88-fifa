@@ -33,9 +33,11 @@ export default async function MatchPredictionPage(props: { params: Promise<{ id:
   const isLocked = new Date() >= match.startTime || match.status !== 'SCHEDULED';
 
   return (
-    <div className="container mx-auto py-12 px-4 max-w-3xl relative z-10">
+    <div className="container mx-auto py-12 px-4 relative z-10">
       <Header />
-      <MatchPredictionForm match={match} prediction={prediction} isLocked={isLocked} />
+      <div className="max-w-3xl mx-auto">
+        <MatchPredictionForm match={match} prediction={prediction} isLocked={isLocked} />
+      </div>
     </div>
   );
 }

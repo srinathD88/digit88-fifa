@@ -168,7 +168,7 @@ export default async function PredictionsDashboardPage() {
                 <CardHeader className="bg-white/5 border-b border-border/20 p-4 pb-3">
                   <div className="flex justify-between items-start mb-2">
                     <div className="text-xs text-muted-foreground font-mono">
-                      {format(match.startTime, "MMM d, HH:mm")}
+                      {new Date(match.startTime).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })} IST
                     </div>
                     <div className="bg-white/10 px-2 py-0.5 rounded text-[10px] font-bold text-muted-foreground">
                       {count} {count === 1 ? 'Pick' : 'Picks'}

@@ -102,7 +102,7 @@ export default async function Dashboard() {
                   </div>
                 </CardTitle>
                 <p className="text-sm font-medium text-accent text-center pt-4">
-                  {new Date(match.startTime).toLocaleString(undefined, { weekday: 'short', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                  {new Date(match.startTime).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', weekday: 'short', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })} IST
                 </p>
               </CardHeader>
               <CardContent className="flex-grow">

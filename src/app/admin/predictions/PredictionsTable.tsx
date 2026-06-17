@@ -114,7 +114,12 @@ export function PredictionsTable({ predictions }: { predictions: any[] }) {
 
               return (
                 <tr key={p.id} className="border-b border-border/20 hover:bg-white/5 transition-colors">
-                  <td className="px-4 py-3 font-medium whitespace-nowrap">{matchName}</td>
+                  <td className="px-4 py-3 whitespace-nowrap">
+                    <div className="font-medium">{matchName}</div>
+                    <div className="text-[10px] text-muted-foreground mt-0.5">
+                      {new Date(p.match.startTime).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })} IST
+                    </div>
+                  </td>
                   <td className="px-4 py-3 font-bold">{p.user.name || p.user.email}</td>
                   
                   <td className="px-4 py-3 text-center">
