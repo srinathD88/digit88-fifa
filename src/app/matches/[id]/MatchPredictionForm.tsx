@@ -33,11 +33,6 @@ export function MatchPredictionForm({ match, prediction, isLocked }: any) {
   }
 
   return (
-    <>
-      <Link href="/">
-        <Button variant="outline" className="mb-6 glass-card hover:bg-white/10 transition-colors">&larr; Back to Dashboard</Button>
-      </Link>
-      
       <Card className="glass-card shadow-2xl overflow-hidden border-border/50">
         <div className="h-2 bg-gradient-to-r from-primary via-accent to-primary background-animate" />
         
@@ -183,6 +178,5 @@ export function MatchPredictionForm({ match, prediction, isLocked }: any) {
           </form>
         </CardContent>
       </Card>
-    </>
   );
 }
