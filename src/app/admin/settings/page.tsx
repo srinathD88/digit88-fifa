@@ -22,7 +22,7 @@ function SyncItem({ title, description, action, latestJob, buttonLabel }: any) {
           <div className="text-[10px] space-y-1 mt-2 p-2 bg-black/20 rounded">
             <div className="flex justify-between">
               <span className="text-muted-foreground">Last Sync:</span>
-              <span className="font-mono">{format(latestJob.startedAt, "MMM d, HH:mm")}</span>
+              <span className="font-mono">{new Date(latestJob.startedAt).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })} IST</span>
             </div>
             <div className="flex justify-between">
               <span className="text-muted-foreground">Status:</span>
@@ -156,7 +156,7 @@ export default async function SettingsPage() {
               <tbody>
                 {recentLogs.map(log => (
                   <tr key={log.id} className="border-b border-border/20 hover:bg-white/5 transition-colors">
-                    <td className="p-4 font-mono text-xs">{format(log.startedAt, "MMM d, HH:mm:ss")}</td>
+                    <td className="p-4 font-mono text-xs">{new Date(log.startedAt).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit' })} IST</td>
                     <td className="p-4 font-bold">Sync {log.type.toLowerCase()}</td>
                     <td className="p-4">
                       <span className={`px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wider ${

@@ -41,7 +41,7 @@ export default async function UsersPage() {
                   const totalPoints = lbEntry?.points || 0;
 
                   return (
-                    <tr key={user.id} className="border-b border-border/20 hover:bg-white/5 transition-colors group">
+                    <tr key={`${user.id}-${user.updatedAt.toISOString()}`} className="border-b border-border/20 hover:bg-white/5 transition-colors group">
                       <td className="p-4 align-middle">
                         {/* Hidden form for this row */}
                         <form id={formId} action={updateUserAction}>
@@ -53,14 +53,14 @@ export default async function UsersPage() {
                         <div className="text-sm text-muted-foreground">{user.email}</div>
                       </td>
                       <td className="p-4 align-middle">
-                        <select form={formId} name="role" defaultValue={user.role} className="bg-secondary/40 border border-border/50 rounded-lg px-3 h-10 text-sm font-bold w-full max-w-[150px] focus:ring-2 focus:ring-primary outline-none transition-colors group-hover:bg-secondary/80">
+                        <select form={formId} name="role" defaultValue={user.role} className="bg-secondary/40 border border-border/50 rounded-lg px-3 h-10 text-sm font-bold w-full min-w-[130px] max-w-[150px] focus:ring-2 focus:ring-primary outline-none transition-colors group-hover:bg-secondary/80">
                           <option value="USER">USER</option>
                           <option value="ADMIN">ADMIN</option>
                           <option value="SUPER_ADMIN">SUPER_ADMIN</option>
                         </select>
                       </td>
                       <td className="p-4 align-middle">
-                        <select form={formId} name="teamId" defaultValue={user.teamId || ""} className="bg-secondary/40 border border-border/50 rounded-lg px-3 h-10 text-sm font-bold w-full max-w-[200px] focus:ring-2 focus:ring-primary outline-none transition-colors group-hover:bg-secondary/80">
+                        <select form={formId} name="teamId" defaultValue={user.teamId || ""} className="bg-secondary/40 border border-border/50 rounded-lg px-3 h-10 text-sm font-bold w-full min-w-[150px] max-w-[200px] focus:ring-2 focus:ring-primary outline-none transition-colors group-hover:bg-secondary/80">
                           <option value="">No Team</option>
                           {teams.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
                         </select>
@@ -71,11 +71,11 @@ export default async function UsersPage() {
                           type="number" 
                           name="points" 
                           defaultValue={totalPoints} 
-                          className="bg-secondary/40 border border-border/50 rounded-lg px-3 h-10 w-24 text-sm font-bold text-accent focus:ring-2 focus:ring-primary outline-none transition-colors group-hover:bg-secondary/80" 
+                          className="bg-secondary/40 border border-border/50 rounded-lg px-3 h-10 w-full min-w-[80px] max-w-[100px] text-sm font-bold text-accent focus:ring-2 focus:ring-primary outline-none transition-colors group-hover:bg-secondary/80" 
                         />
                       </td>
                       <td className="p-4 align-middle">
-                        <SubmitButton form={formId} type="submit" variant="default" className="h-10 px-6 font-bold tracking-wide w-full max-w-[100px]" loadingText="Saving...">Save</SubmitButton>
+                        <SubmitButton form={formId} type="submit" variant="default" className="h-10 px-4 font-bold tracking-wide w-full min-w-[100px]" loadingText="Saving...">Save</SubmitButton>
                       </td>
                     </tr>
                   );

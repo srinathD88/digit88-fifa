@@ -95,6 +95,14 @@ body {
   body {
     @apply bg-background text-foreground;
   }
+  button, 
+  [role="button"],
+  a,
+  label,
+  input[type="submit"],
+  input[type="button"] {
+    cursor: pointer;
+  }
 }
 
 @layer utilities {

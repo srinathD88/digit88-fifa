@@ -9,21 +9,27 @@ export async function getIndividualLeaderboard() {
   });
 
   const users = await prisma.user.findMany({
-    include: { team: true }
+    include: { team: true, predictions: { where: { pointsAwarded: { not: null } } } }
   });
 
   return users.map(user => {
-    const score = userScores.find(s => s.userId === user.id);
-    const predictionPoints = score?._sum?.pointsAwarded || 0;
+    const predictionPoints = user.predictions.reduce((sum, p) => sum + (p.pointsAwarded || 0), 0);
+    // A perfect prediction scores at least 55 points (10 Winner + 25 Exact + 20 Bonus).
+    const perfectCount = user.predictions.filter(p => (p.pointsAwarded || 0) >= 55).length;
+    
     return {
       userId: user.id,
       name: user.name || "Unknown",
       team: user.team?.name || "No Team",
       flagUrl: user.team?.flagUrl || null,
       teamId: user.teamId,
-      points: predictionPoints + user.bonusPoints
+      points: predictionPoints + user.bonusPoints,
+      perfectCount
     };
-  }).sort((a, b) => b.points - a.points);
+  }).sort((a, b) => {
+    if (b.points !== a.points) return b.points - a.points;
+    return b.perfectCount - a.perfectCount;
+  });
 }
 
 export async function getTeamLeaderboard() {

@@ -57,8 +57,8 @@ export function MatchInsightsButton({ matchId }: { matchId: string }) {
 
   return (
     <Dialog open={open} onOpenChange={handleOpen}>
-      <DialogTrigger className="text-accent hover:text-accent/80 p-2 h-8 text-sm hover:bg-accent/10 rounded-md transition-colors flex items-center justify-center font-medium" title="Match Insights">
-        ⚽ Match Insights
+      <DialogTrigger className="text-accent hover:text-accent/80 p-2 h-10 w-full text-sm bg-black/40 hover:bg-accent/10 border border-white/5 rounded-md transition-colors flex items-center justify-center gap-2 font-bold uppercase tracking-widest shadow-sm" title="Match Insights">
+        <span className="text-lg">⚽</span> Match Insights
       </DialogTrigger>
       <DialogContent className="sm:max-w-[500px] bg-[#0f0f13] border border-accent/40 shadow-2xl text-white">
         <DialogHeader>

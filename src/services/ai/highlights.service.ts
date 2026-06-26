@@ -81,19 +81,35 @@ Output ONLY a raw JSON array matching this exact format, with absolutely no mark
   if (!Array.isArray(parsed) || parsed.length === 0) {
     throw new Error("Parsed highlights array is empty");
   }
+  const categoryImages: Record<string, string[]> = {
+    TEAM: ["football-01.svg", "football-02.svg"],
+    PLAYER: ["player-01.svg", "player-02.svg"],
+    VENUE: ["stadium-01.svg", "stadium-02.svg"],
+    MATCH: ["pitch-01.svg", "tactical-01.svg"],
+    TOURNAMENT: ["trophy-01.svg", "world-01.svg"]
+  };
+
+  const getImageForCategory = (category: string) => {
+    const images = categoryImages[category] || categoryImages["TOURNAMENT"];
+    return images[Math.floor(Math.random() * images.length)];
+  };
 
   // Save to DB
   await prisma.aIHighlight.createMany({
-    data: parsed.map((h: any) => ({
-      title: h.title || "Insight",
-      content: h.content || "An exciting update from the tournament.",
-      category: h.category as FactCategory || FactCategory.TOURNAMENT,
-      type: h.type as HighlightType || HighlightType.DAILY,
-      date: todayStart,
-      generatedBy: adminId ? `admin_${adminId}` : "cron",
-      promptVersion,
-      modelUsed
-    }))
+    data: parsed.map((h: any) => {
+      const category = h.category as FactCategory || FactCategory.TOURNAMENT;
+      return {
+        title: h.title || "Insight",
+        content: h.content || "An exciting update from the tournament.",
+        category,
+        type: h.type as HighlightType || HighlightType.DAILY,
+        date: todayStart,
+        generatedBy: adminId ? `admin_${adminId}` : "cron",
+        promptVersion,
+        modelUsed,
+        imageKey: getImageForCategory(category)
+      };
+    })
   });
 
   return parsed.length;

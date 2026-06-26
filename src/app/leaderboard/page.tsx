@@ -2,7 +2,7 @@ import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Header } from "@/components/Header";
-import { getIndividualLeaderboard, getTeamLeaderboard } from "@/services/leaderboard.service";
+import { getIndividualLeaderboard, getTeamLeaderboard } from "@/lib/cache/leaderboard";
 
 export default async function LeaderboardPage() {
   const session = await auth();
@@ -12,8 +12,10 @@ export default async function LeaderboardPage() {
     redirect("/team-selection");
   }
 
-  const individualLeaderboard = await getIndividualLeaderboard();
-  const teamLeaderboard = await getTeamLeaderboard();
+  const [individualLeaderboard, teamLeaderboard] = await Promise.all([
+    getIndividualLeaderboard(),
+    getTeamLeaderboard()
+  ]);
 
   return (
     <div className="container mx-auto py-12 px-4 relative z-10">

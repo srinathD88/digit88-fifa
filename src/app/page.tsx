@@ -1,6 +1,7 @@
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
-import { prisma } from "@/lib/prisma";
+import { getMatches } from "@/lib/cache/matches";
+import { getUserPredictions } from "@/lib/cache/users";
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -11,10 +12,12 @@ import { MatchInsightsButton } from "@/components/MatchInsightsButton";
 import { DailyHighlights } from "@/components/DailyHighlights";
 
 import { Digit88Logo } from "@/components/Digit88Logo";
+import { Suspense } from "react";
+import { Loader2 } from "lucide-react";
 
 export default async function Dashboard() {
   const session = await auth();
-  if (!session?.user) {
+  if (!session?.user?.id) {
     // If we have no session, we show a beautiful landing page with sign-in
     return (
       <div className="flex min-h-screen items-center justify-center relative overflow-hidden">
@@ -50,14 +53,10 @@ export default async function Dashboard() {
   }
 
   // Dashboard View
-  const matches = await prisma.match.findMany({
-    orderBy: { startTime: 'asc' },
-    include: { homeTeam: true, awayTeam: true }
-  });
-
-  const userPredictions = await prisma.prediction.findMany({
-    where: { userId: session.user!.id }
-  });
+  const [matches, userPredictions] = await Promise.all([
+    getMatches(),
+    getUserPredictions(session.user.id)
+  ]);
 
   const predMap = userPredictions.reduce((acc, p) => {
     acc[p.matchId] = p;
@@ -68,8 +67,8 @@ export default async function Dashboard() {
   const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   const tomorrowStart = new Date(todayStart.getTime() + 24 * 60 * 60 * 1000);
 
-  const todaysMatches = matches.filter(m => m.startTime >= todayStart && m.startTime < tomorrowStart);
-  const upcomingMatches = matches.filter(m => m.startTime >= tomorrowStart);
+  const todaysMatches = matches.filter(m => new Date(m.startTime) >= todayStart && new Date(m.startTime) < tomorrowStart);
+  const upcomingMatches = matches.filter(m => new Date(m.startTime) >= tomorrowStart);
   const completedMatches = matches.filter(m => m.status === 'FINISHED');
 
   const renderMatches = (matchList: typeof matches, allowPrediction: boolean = true) => {
@@ -85,7 +84,7 @@ export default async function Dashboard() {
       <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3 mt-6">
         {matchList.map(match => {
           const prediction = predMap[match.id];
-          const isLocked = new Date() >= match.startTime || match.status !== 'SCHEDULED';
+          const isLocked = new Date() >= new Date(new Date(match.startTime).getTime() - 5 * 60 * 1000) || match.status !== 'SCHEDULED';
 
           return (
             <Card key={match.id} className="glass-card transition-all duration-300 hover:scale-[1.03] hover:shadow-[0_0_30px_rgba(150,50,150,0.15)] flex flex-col justify-between">
@@ -170,14 +169,16 @@ export default async function Dashboard() {
     <div className="container mx-auto py-12 px-4 relative z-10 overflow-hidden">
       <Header />
       
-      <DailyHighlights userId={session.user?.id || ""} />
+      <Suspense fallback={<div className="h-64 flex items-center justify-center bg-black/20 rounded-xl mb-10"><Loader2 className="animate-spin text-primary" /></div>}>
+        <DailyHighlights userId={session.user?.id || ""} />
+      </Suspense>
 
       <Tabs defaultValue="today" className="w-full">
-        <TabsList className="grid w-full grid-cols-4 h-14 bg-black/40 border border-border/50 rounded-xl p-1">
-          <TabsTrigger value="today" className="text-md font-bold rounded-lg data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Today's Matches</TabsTrigger>
-          <TabsTrigger value="upcoming" className="text-md font-bold rounded-lg data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Upcoming</TabsTrigger>
-          <TabsTrigger value="completed" className="text-md font-bold rounded-lg data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Completed</TabsTrigger>
-          <TabsTrigger value="all" className="text-md font-bold rounded-lg data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">All Matches</TabsTrigger>
+        <TabsList className="grid w-full grid-cols-2 gap-2 md:gap-0 md:grid-cols-4 h-auto md:h-14 bg-black/40 border border-border/50 rounded-xl p-2 md:p-1">
+          <TabsTrigger value="today" className="text-sm md:text-md font-bold rounded-lg data-[state=active]:bg-primary data-[state=active]:text-primary-foreground py-2 md:py-1">Today's Matches</TabsTrigger>
+          <TabsTrigger value="upcoming" className="text-sm md:text-md font-bold rounded-lg data-[state=active]:bg-primary data-[state=active]:text-primary-foreground py-2 md:py-1">Upcoming</TabsTrigger>
+          <TabsTrigger value="completed" className="text-sm md:text-md font-bold rounded-lg data-[state=active]:bg-primary data-[state=active]:text-primary-foreground py-2 md:py-1">Completed</TabsTrigger>
+          <TabsTrigger value="all" className="text-sm md:text-md font-bold rounded-lg data-[state=active]:bg-primary data-[state=active]:text-primary-foreground py-2 md:py-1">All Matches</TabsTrigger>
         </TabsList>
         <TabsContent value="today">
           {renderMatches(todaysMatches, true)}

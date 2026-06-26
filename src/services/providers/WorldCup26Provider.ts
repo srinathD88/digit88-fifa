@@ -190,7 +190,7 @@ export class WorldCup26Provider implements MatchProvider {
           where: { externalMatchId: externalId }
         });
 
-        if (existingMatch && existingMatch.source === 'MANUAL') {
+        if (existingMatch && existingMatch.manualOverride) {
           continue; // Skip API update if manually overridden
         }
 

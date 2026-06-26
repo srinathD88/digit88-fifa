@@ -1,13 +1,14 @@
-import { prisma } from "@/lib/prisma";
+import { getHighlights } from "@/lib/cache/highlights";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { HighlightsCarousel } from "./HighlightsCarousel";
+import { prisma } from "@/lib/prisma";
 
 export async function DailyHighlights({ userId }: { userId: string }) {
   const now = new Date();
   const todayStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
 
-  let highlights = await prisma.aIHighlight.findMany({
-    where: { date: todayStart }
-  });
+  let allHighlights = await getHighlights(50);
+  let highlights = allHighlights.filter((h: any) => h.date >= todayStart);
 
   if (highlights.length === 0) return null;
 
@@ -49,23 +50,7 @@ export async function DailyHighlights({ userId }: { userId: string }) {
         </span>
       </div>
 
-      <div className="flex gap-4 overflow-x-auto pb-4 snap-x snap-mandatory custom-scrollbar px-1">
-        {highlights.map((h, i) => (
-          <Card key={h.id || i} className="glass-card min-w-[320px] max-w-[320px] shrink-0 snap-center flex flex-col justify-between hover:scale-[1.02] transition-transform shadow-[0_0_20px_rgba(200,50,200,0.1)] border-accent/20">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm flex items-center gap-2">
-                <span className="text-xl">{getEmoji(h.type)}</span>
-                <span className="font-bold text-accent uppercase tracking-wider">{h.title}</span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-foreground font-medium text-lg leading-snug">{h.content}</p>
-            </CardContent>
-          </Card>
-        ))}
-        {/* Spacer for right edge padding inside scroll area */}
-        <div className="w-1 shrink-0"></div>
-      </div>
+      <HighlightsCarousel highlights={highlights} />
     </div>
   );
 }

@@ -100,6 +100,8 @@ model Session {
   userId       String
   expires      DateTime
   user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }
 
 model User {
@@ -125,6 +127,8 @@ model User {
   factRequests          FactRequestLog[]
   insightEvents         MatchInsightEvent[]
   highlightViews        HighlightView[]
+
+  @@index([teamId])
 }
 
 model VerificationToken {
@@ -159,6 +163,8 @@ model GroupStanding {
   team         Team  @relation(fields: [teamId], references: [id])
 
   @@unique([groupId, teamId])
+  @@index([groupId])
+  @@index([teamId])
 }
 
 model Team {
@@ -219,6 +225,7 @@ model Match {
   pointsCalculated Boolean     @default(false)
   pointMultiplier  Float       @default(1.0)
   factsGenerated   Boolean     @default(false)
+  manualOverride   Boolean     @default(false)
   
   createdAt        DateTime    @default(now())
   updatedAt        DateTime    @updatedAt
@@ -232,6 +239,10 @@ model Match {
   matchFacts      MatchFact[]
   factRequests    FactRequestLog[]
   insightEvents   MatchInsightEvent[]
+
+  @@index([status])
+  @@index([startTime])
+  @@index([stage])
 }
 
 model Prediction {
@@ -252,6 +263,8 @@ model Prediction {
   match Match @relation(fields: [matchId], references: [id])
 
   @@unique([userId, matchId])
+  @@index([userId])
+  @@index([matchId])
 }
 
 model TournamentPrediction {
@@ -264,6 +277,8 @@ model TournamentPrediction {
   updatedAt            DateTime @updatedAt
 
   user User @relation(fields: [userId], references: [id])
+
+  @@index([userId])
 }
 
 model AuditLog {
@@ -276,6 +291,9 @@ model AuditLog {
   createdAt  DateTime @default(now())
 
   user User? @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([entityType, entityId])
 }
 
 model ScoringConfig {
@@ -300,6 +318,8 @@ model MatchProcessing {
   updatedAt   DateTime         @updatedAt
 
   match Match @relation(fields: [matchId], references: [id])
+
+  @@index([status])
 }
 
 model MatchFact {
@@ -311,6 +331,9 @@ model MatchFact {
   createdAt     DateTime     @default(now())
 
   match         Match        @relation(fields: [matchId], references: [id])
+
+  @@index([matchId])
+  @@index([category])
 }
 
 model FactRequestLog {
@@ -321,6 +344,9 @@ model FactRequestLog {
 
   user      User     @relation(fields: [userId], references: [id])
   match     Match    @relation(fields: [matchId], references: [id])
+
+  @@index([userId])
+  @@index([matchId])
 }
 
 model MatchInsightEvent {
@@ -331,6 +357,9 @@ model MatchInsightEvent {
 
   user      User     @relation(fields: [userId], references: [id])
   match     Match    @relation(fields: [matchId], references: [id])
+
+  @@index([userId])
+  @@index([matchId])
 }
 
 model SystemMetric {
@@ -349,9 +378,13 @@ model AIHighlight {
   generatedBy   String
   promptVersion String        @default("v1")
   modelUsed     String        @default("meta-llama/Meta-Llama-3.1-8B-Instruct")
+  imageKey      String?
   createdAt     DateTime      @default(now())
 
   views         HighlightView[]
+
+  @@index([date])
+  @@index([type])
 }
 
 model HighlightView {
@@ -364,6 +397,8 @@ model HighlightView {
   highlight   AIHighlight @relation(fields: [highlightId], references: [id], onDelete: Cascade)
 
   @@unique([userId, highlightId])
+  @@index([userId])
+  @@index([highlightId])
 }
 
 model SyncJob {
@@ -374,6 +409,9 @@ model SyncJob {
   completedAt      DateTime?
   recordsProcessed Int        @default(0)
   error            String?
+
+  @@index([type])
+  @@index([status])
 }
 
 model TournamentConfig {

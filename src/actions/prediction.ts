@@ -3,7 +3,7 @@
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { redirect } from "next/navigation";
 
 const predictionSchema = z.object({
@@ -76,6 +76,7 @@ export async function submitPrediction(formData: FormData) {
     }
   });
 
+  revalidateTag("predictions", "max");
   revalidatePath("/");
   revalidatePath(`/matches/${match.id}`);
   redirect("/");

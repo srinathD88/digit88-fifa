@@ -63,20 +63,27 @@ export default async function AdminDashboardPage() {
           </CardContent>
         </Card>
         
-        <Card className="glass-card bg-accent/5">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground uppercase tracking-wider">Prediction Coverage</CardTitle>
+        <Card className="glass-card bg-accent/5 relative overflow-hidden group">
+          <div className="absolute -right-4 -top-4 w-24 h-24 bg-accent/20 rounded-full blur-2xl group-hover:bg-accent/30 transition-all duration-500" />
+          <CardHeader className="pb-2 relative z-10">
+            <CardTitle className="text-sm font-medium text-muted-foreground uppercase tracking-wider flex items-center justify-between">
+              Prediction Coverage
+              <span className="text-accent">🎯</span>
+            </CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="text-4xl font-extrabold text-accent">
+          <CardContent className="relative z-10">
+            <div className="text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-accent to-amber-300">
               {coveragePercent}%
             </div>
-            <p className="text-sm text-muted-foreground mt-2 font-medium">
-              Today's Matches: <span className="text-white">{todaysMatches.length}</span>
-            </p>
-            <p className="text-sm text-muted-foreground">
-              Predictions: <span className="text-white">{predictionsForToday} / {maxPossiblePredictionsToday}</span>
-            </p>
+            <div className="mt-2 text-sm font-bold text-white/90">
+              {predictionsForToday} / {maxPossiblePredictionsToday} predictions
+            </div>
+            <div className="mt-4 pt-3 border-t border-white/10 text-xs text-muted-foreground">
+              <span className="font-semibold block mb-1">Formula:</span>
+              <span className="font-mono bg-black/40 px-2 py-1 rounded block">
+                {predictionsForToday} ÷ ({usersCount} users × {todaysMatches.length} matches)
+              </span>
+            </div>
           </CardContent>
         </Card>
         
@@ -95,19 +102,29 @@ export default async function AdminDashboardPage() {
           </CardContent>
         </Card>
 
-        <Card className="glass-card">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground uppercase tracking-wider">System Health</CardTitle>
+        <Card className="glass-card relative overflow-hidden group">
+          <div className="absolute -left-4 -bottom-4 w-24 h-24 bg-green-500/10 rounded-full blur-2xl group-hover:bg-green-500/20 transition-all duration-500" />
+          <CardHeader className="pb-2 relative z-10">
+            <CardTitle className="text-sm font-medium text-muted-foreground uppercase tracking-wider flex items-center justify-between">
+              System Health
+              <span className="text-green-400">⚡</span>
+            </CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="flex flex-col gap-3 text-sm mt-1">
-              <div className="flex justify-between items-center bg-secondary/30 p-2 rounded-md">
-                <span className="font-semibold text-muted-foreground">Match Schedules:</span>
-                <span className="text-green-400 font-bold bg-green-400/10 px-2 py-0.5 rounded text-xs">Healthy</span>
+          <CardContent className="relative z-10">
+            <div className="flex flex-col gap-3 mt-2">
+              <div className="flex justify-between items-center bg-black/40 border border-white/5 p-3 rounded-lg shadow-inner">
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+                  <span className="font-bold text-sm text-white/90">Match Schedules</span>
+                </div>
+                <span className="text-green-400 font-extrabold bg-green-400/10 px-2 py-1 rounded text-[10px] uppercase tracking-widest border border-green-500/20">Operational</span>
               </div>
-              <div className="flex justify-between items-center bg-secondary/30 p-2 rounded-md">
-                <span className="font-semibold text-muted-foreground">Live Results:</span>
-                <span className="text-green-400 font-bold bg-green-400/10 px-2 py-0.5 rounded text-xs">Healthy</span>
+              <div className="flex justify-between items-center bg-black/40 border border-white/5 p-3 rounded-lg shadow-inner">
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+                  <span className="font-bold text-sm text-white/90">Live Results API</span>
+                </div>
+                <span className="text-green-400 font-extrabold bg-green-400/10 px-2 py-1 rounded text-[10px] uppercase tracking-widest border border-green-500/20">Operational</span>
               </div>
             </div>
           </CardContent>

@@ -7,7 +7,7 @@ export function HeaderNav({ isAdmin }: { isAdmin: boolean }) {
   const pathname = usePathname();
 
   return (
-    <nav className="flex items-center gap-6 hidden md:flex">
+    <nav className="flex items-center gap-4 md:gap-6 flex-wrap">
       <Link 
         href="/" 
         className={`text-sm font-semibold transition-colors uppercase tracking-wider ${pathname === "/" ? "text-primary border-b-2 border-primary pb-1" : "hover:text-primary"}`}

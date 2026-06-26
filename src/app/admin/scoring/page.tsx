@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import { SubmitButton } from "@/components/SubmitButton";
 import { updateScoringConfigAction, recalculateAllScoresAction } from "@/actions/admin";
 
 export default async function ScoringPage() {
@@ -30,9 +30,9 @@ export default async function ScoringPage() {
         </div>
         
         <form action={recalculateAllScoresAction}>
-          <Button type="submit" variant="outline" className="font-bold border-accent text-accent hover:bg-accent/10">
+          <SubmitButton type="submit" variant="outline" className="font-bold border-accent text-accent hover:bg-accent/10" loadingText="Recalculating...">
             🔄 Recalculate All Scores
-          </Button>
+          </SubmitButton>
         </form>
       </div>
 
@@ -63,7 +63,7 @@ export default async function ScoringPage() {
               </tbody>
             </table>
             <div className="p-6 flex justify-end gap-4 bg-secondary/10 rounded-b-xl border-t border-border/40">
-              <Button type="submit" className="bg-primary hover:bg-primary/90 text-primary-foreground font-bold">Save Configuration</Button>
+              <SubmitButton type="submit" className="bg-primary hover:bg-primary/90 text-primary-foreground font-bold" loadingText="Saving...">Save Configuration</SubmitButton>
             </div>
           </form>
         </CardContent>

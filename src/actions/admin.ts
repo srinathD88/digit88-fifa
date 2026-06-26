@@ -2,7 +2,7 @@
 
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { processPendingMatches } from "@/services/scoring.service";
 
 async function verifyAdmin() {
@@ -55,6 +55,7 @@ export async function updateUserAction(formData: FormData) {
     }
   });
 
+  revalidateTag("leaderboard", "max");
   revalidatePath("/admin/users");
   revalidatePath("/leaderboard");
 }
@@ -85,6 +86,7 @@ export async function updateMatchAction(formData: FormData) {
     }
   });
 
+  revalidateTag("matches", "max");
   revalidatePath("/admin/matches");
   revalidatePath("/");
 }
@@ -111,6 +113,7 @@ export async function recalculateMatchAction(formData: FormData) {
     }
   });
 
+  revalidateTag("matches", "max");
   revalidatePath("/admin/matches");
 }
 
@@ -202,6 +205,7 @@ export async function generateHighlightsAction(formData?: FormData) {
     });
   }
 
+  revalidateTag("highlights", "max");
   revalidatePath("/");
   revalidatePath("/admin/settings");
 }
@@ -234,6 +238,7 @@ export async function syncFixturesAction() {
   const provider = getMatchProvider();
   
   await provider.syncFixtures();
+  revalidateTag("matches", "max");
   revalidatePath("/admin/settings");
   revalidatePath("/");
 }
@@ -273,7 +278,138 @@ export async function recalculateAllScoresAction() {
     });
   }
 
+  revalidateTag("leaderboard", "max");
+  revalidateTag("predictions", "max");
   revalidatePath("/admin/scoring");
   revalidatePath("/leaderboard");
   revalidatePath("/admin/settings");
+}
+
+export async function updateMatchManualAction(formData: FormData) {
+  const admin = await verifyAdmin();
+  const matchId = formData.get("matchId") as string;
+  const status = formData.get("status") as any;
+  const stage = formData.get("stage") as any;
+  const startTime = new Date(formData.get("startTime") as string);
+  const homeScoreStr = formData.get("homeScore") as string;
+  const awayScoreStr = formData.get("awayScore") as string;
+  const actualMaxGoalsStr = formData.get("actualMaxGoals") as string;
+  const winner = formData.get("winner") as string;
+  const manualOverride = formData.get("manualOverride") === "true";
+
+  const homeScore = homeScoreStr ? parseInt(homeScoreStr) : null;
+  const awayScore = awayScoreStr ? parseInt(awayScoreStr) : null;
+  const actualMaxGoals = actualMaxGoalsStr ? parseInt(actualMaxGoalsStr) : null;
+
+  const previousMatch = await prisma.match.findUnique({ where: { id: matchId } });
+  
+  let finalWinner = winner;
+  if (winner === "HOME") finalWinner = previousMatch?.homeTeamName || "";
+  else if (winner === "AWAY") finalWinner = previousMatch?.awayTeamName || "";
+  
+  const updatedMatch = await prisma.match.update({
+    where: { id: matchId },
+    data: { 
+      status, stage, startTime, 
+      homeScore, awayScore, actualMaxGoals, 
+      winner: finalWinner || null,
+      manualOverride 
+    }
+  });
+
+  const changes: any = {};
+  if (previousMatch?.homeScore !== homeScore) changes.homeScore = `${previousMatch?.homeScore} -> ${homeScore}`;
+  if (previousMatch?.awayScore !== awayScore) changes.awayScore = `${previousMatch?.awayScore} -> ${awayScore}`;
+  if (previousMatch?.status !== status) changes.status = `${previousMatch?.status} -> ${status}`;
+
+  await prisma.auditLog.create({
+    data: {
+      action: "MANUAL_UPDATE_MATCH",
+      userId: admin.id,
+      entityType: "MATCH",
+      entityId: matchId,
+      metadata: { changes, manualOverride }
+    }
+  });
+
+  // Automated scoring recalculation if status became FINISHED
+  if (status === "FINISHED" && previousMatch?.status !== "FINISHED") {
+     await prisma.matchProcessing.upsert({
+        where: { matchId },
+        update: { status: "PENDING", attempts: 0 },
+        create: { matchId, status: "PENDING" }
+     });
+     const { processPendingMatches } = await import("@/services/scoring.service");
+     await processPendingMatches();
+  }
+
+  revalidateTag("matches", "max");
+  revalidateTag("leaderboard", "max");
+  revalidateTag("predictions", "max");
+  revalidatePath("/admin/matches");
+  revalidatePath("/");
+  revalidatePath("/leaderboard");
+}
+
+export async function createMatchManualAction(formData: FormData) {
+  const admin = await verifyAdmin();
+  const homeTeamId = formData.get("homeTeamId") as string;
+  const awayTeamId = formData.get("awayTeamId") as string;
+  const status = formData.get("status") as any;
+  const stage = formData.get("stage") as any;
+  const startTime = new Date(formData.get("startTime") as string);
+  const homeScoreStr = formData.get("homeScore") as string;
+  const awayScoreStr = formData.get("awayScore") as string;
+  const actualMaxGoalsStr = formData.get("actualMaxGoals") as string;
+  const winner = formData.get("winner") as string;
+
+  const homeScore = homeScoreStr ? parseInt(homeScoreStr) : null;
+  const awayScore = awayScoreStr ? parseInt(awayScoreStr) : null;
+  const actualMaxGoals = actualMaxGoalsStr ? parseInt(actualMaxGoalsStr) : null;
+
+  const homeTeam = await prisma.team.findUnique({ where: { id: homeTeamId } });
+  const awayTeam = await prisma.team.findUnique({ where: { id: awayTeamId } });
+  if (!homeTeam || !awayTeam) throw new Error("Teams not found");
+
+  let finalWinner = winner;
+  if (winner === "HOME") finalWinner = homeTeam.name;
+  else if (winner === "AWAY") finalWinner = awayTeam.name;
+
+  const newMatch = await prisma.match.create({
+    data: {
+      externalMatchId: `manual_${Date.now()}`,
+      source: "MANUAL",
+      manualOverride: true,
+      homeTeamId, awayTeamId,
+      homeTeamName: homeTeam.name,
+      awayTeamName: awayTeam.name,
+      status, stage, startTime,
+      homeScore, awayScore, actualMaxGoals,
+      winner: finalWinner || null
+    }
+  });
+
+  await prisma.auditLog.create({
+    data: {
+      action: "MANUAL_CREATE_MATCH",
+      userId: admin.id,
+      entityType: "MATCH",
+      entityId: newMatch.id,
+      metadata: { source: "MANUAL" }
+    }
+  });
+
+  if (status === "FINISHED") {
+     await prisma.matchProcessing.upsert({
+        where: { matchId: newMatch.id },
+        update: { status: "PENDING", attempts: 0 },
+        create: { matchId: newMatch.id, status: "PENDING" }
+     });
+     const { processPendingMatches } = await import("@/services/scoring.service");
+     await processPendingMatches();
+  }
+
+  revalidateTag("matches", "max");
+  revalidatePath("/admin/matches");
+  revalidatePath("/");
 }

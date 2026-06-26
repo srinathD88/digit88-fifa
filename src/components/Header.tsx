@@ -20,16 +20,16 @@ export async function Header() {
   const flagUrl = stats?.flagUrl || null;
 
   return (
-    <header className="flex justify-between items-center mb-10 border-b border-border/40 pb-6 relative z-10">
-      <div className="flex items-center gap-8">
+    <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-10 border-b border-border/40 pb-6 relative z-10 w-full">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 sm:gap-8 w-full md:w-auto justify-between sm:justify-start">
         <Link href="/" className="flex items-center hover:opacity-80 transition-opacity">
           <Digit88Logo className="h-10 w-auto" />
         </Link>
         <HeaderNav isAdmin={isAdmin} />
       </div>
       
-      <div className="flex items-center gap-4">
-        <div className="text-right hidden md:flex flex-col items-end gap-0.5">
+      <div className="flex items-center justify-between w-full md:w-auto gap-4">
+        <div className="text-left md:text-right flex flex-col items-start md:items-end gap-0.5">
           <p className="font-bold text-sm flex items-center">
             {flagUrl && <img src={flagUrl} alt={teamName} className="mr-2 w-5 h-3.5 rounded-sm object-cover shadow-sm" />}
             {session.user.name}

@@ -2,7 +2,7 @@ import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import { SubmitButton } from "@/components/SubmitButton";
 import { revalidatePath } from "next/cache";
 
 async function selectTeam(formData: FormData) {
@@ -65,8 +65,8 @@ export default async function TeamSelectionPage() {
             {teams.map(team => (
               <form key={team.id} action={selectTeam}>
                 <input type="hidden" name="teamId" value={team.id} />
-                <Button 
-                  type="submit" 
+                <SubmitButton 
+                  loadingText="Selecting..."
                   variant="outline" 
                   className="w-full h-auto py-4 px-2 flex flex-col items-center justify-center gap-2 hover:bg-white/10 hover:border-primary transition-all group"
                 >
@@ -78,7 +78,7 @@ export default async function TeamSelectionPage() {
                     )}
                   </div>
                   <span className="font-bold text-center whitespace-normal mt-2">{team.name}</span>
-                </Button>
+                </SubmitButton>
               </form>
             ))}
             {teams.length === 0 && (

@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { submitPrediction } from "@/actions/prediction";
+import { SubmitButton } from "@/components/SubmitButton";
 import Link from "next/link";
 
 export function MatchPredictionForm({ match, prediction, isLocked }: any) {
@@ -167,13 +168,12 @@ export function MatchPredictionForm({ match, prediction, isLocked }: any) {
             </div>
 
             <div className="pt-4">
-              <Button 
-                type="submit" 
+              <SubmitButton 
                 disabled={isLocked} 
                 className="w-full h-16 text-xl font-bold bg-gradient-to-r from-primary to-accent hover:from-primary/90 hover:to-accent/90 transition-all duration-300 shadow-[0_0_20px_rgba(200,50,200,0.3)] hover:shadow-[0_0_40px_rgba(200,50,200,0.6)] rounded-xl"
               >
                 {isLocked ? "Predictions Locked" : "Save Prediction"}
-              </Button>
+              </SubmitButton>
             </div>
           </form>
         </CardContent>
