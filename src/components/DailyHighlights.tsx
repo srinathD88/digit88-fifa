@@ -8,7 +8,7 @@ export async function DailyHighlights({ userId }: { userId: string }) {
   const todayStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
 
   let allHighlights = await getHighlights(50);
-  let highlights = allHighlights.filter((h: any) => h.date >= todayStart);
+  let highlights = allHighlights.filter((h: any) => new Date(h.date) >= todayStart);
 
   if (highlights.length === 0) return null;
 
@@ -38,7 +38,7 @@ export async function DailyHighlights({ userId }: { userId: string }) {
     }
   };
 
-  const lastGenerated = highlights[0].createdAt;
+  const lastGenerated = new Date(highlights[0].createdAt);
   const hoursAgo = Math.floor((now.getTime() - lastGenerated.getTime()) / (1000 * 60 * 60));
 
   return (
