@@ -10,7 +10,8 @@ import Link from "next/link";
 import { Header } from "@/components/Header";
 import { MatchInsightsButton } from "@/components/MatchInsightsButton";
 import { DailyHighlights } from "@/components/DailyHighlights";
-
+import { getUserLeaderboardStats } from "@/services/leaderboard.service";
+import { CelebrationManager } from "@/components/CelebrationManager";
 import { Digit88Logo } from "@/components/Digit88Logo";
 import { Suspense } from "react";
 import { Loader2 } from "lucide-react";
@@ -53,10 +54,12 @@ export default async function Dashboard() {
   }
 
   // Dashboard View
-  const [matches, userPredictions] = await Promise.all([
+  const [matches, userPredictions, stats] = await Promise.all([
     getMatches(),
-    getUserPredictions(session.user.id)
+    getUserPredictions(session.user.id),
+    getUserLeaderboardStats(session.user.id)
   ]);
+  const rank = stats?.rank || 0;
 
   const predMap = userPredictions.reduce((acc, p) => {
     acc[p.matchId] = p;
@@ -168,6 +171,34 @@ export default async function Dashboard() {
   return (
     <div className="container mx-auto py-12 px-4 relative z-10 overflow-hidden">
       <Header />
+      <CelebrationManager predictionCount={userPredictions.length} rank={rank} points={stats?.points || 0} />
+
+      {rank === 1 && (stats?.points || 0) > 1 && (
+        <div className="w-full mb-8 rounded-2xl border border-amber-500/40 bg-gradient-to-r from-amber-500/10 via-amber-400/5 to-transparent p-6 relative overflow-hidden shadow-[0_0_30px_rgba(245,158,11,0.1)]">
+          <div className="absolute top-0 right-0 w-64 h-64 bg-amber-500/10 rounded-full blur-[80px] pointer-events-none" />
+          <div className="relative z-10">
+            <div className="flex items-center gap-2 mb-3">
+              <span className="text-amber-500 text-sm font-black uppercase tracking-widest flex items-center">
+                <span className="mr-1.5 text-lg">👑</span> Current Leader
+              </span>
+            </div>
+            <h2 className="text-3xl font-black mb-1 text-transparent bg-clip-text bg-gradient-to-r from-amber-500 to-yellow-400 uppercase tracking-wide">
+              Congratulations!
+            </h2>
+            <p className="text-foreground font-medium mb-4 max-w-xl opacity-90">
+              You're leading the FIFA Prediction League. Keep defending your lead!
+            </p>
+            <div className="flex items-center gap-4">
+              <div className="bg-amber-500/10 border border-amber-500/20 px-4 py-1.5 rounded-lg shadow-inner">
+                <span className="text-amber-500 font-bold uppercase tracking-widest text-sm">Rank #1</span>
+              </div>
+              <div className="text-accent font-black text-xl drop-shadow-[0_0_5px_rgba(200,50,200,0.5)]">
+                {stats?.points || 0} Points
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
       
       <Suspense fallback={<div className="h-64 flex items-center justify-center bg-black/20 rounded-xl mb-10"><Loader2 className="animate-spin text-primary" /></div>}>
         <DailyHighlights userId={session.user?.id || ""} />

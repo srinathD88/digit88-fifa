@@ -43,7 +43,15 @@ export default async function LeaderboardPage() {
                 <tbody>
                   {individualLeaderboard.map((user, idx) => (
                     <tr key={user.userId} className="border-b border-border/20 hover:bg-white/5 transition-colors">
-                      <td className="p-4 font-bold text-lg">{idx + 1}</td>
+                      <td className="p-4 font-bold text-lg">
+                        <div className="flex items-center gap-1.5">
+                          {idx === 0 && user.points > 0 ? (
+                            <span className="text-amber-500 text-xl drop-shadow-sm" title="Current Leader">🏆</span>
+                          ) : (
+                            <span>{idx + 1}</span>
+                          )}
+                        </div>
+                      </td>
                       <td className="p-4 font-medium">{user.name}</td>
                       <td className="p-4 text-muted-foreground flex items-center gap-2">
                         {user.flagUrl && <img src={user.flagUrl} alt="" className="w-6 h-4 rounded-sm object-cover" />}
@@ -84,7 +92,15 @@ export default async function LeaderboardPage() {
                 <tbody>
                   {teamLeaderboard.map((team, idx) => (
                     <tr key={team.id} className="border-b border-border/20 hover:bg-white/5 transition-colors">
-                      <td className="p-4 font-bold text-lg">{idx + 1}</td>
+                      <td className="p-4 font-bold text-lg">
+                        <div className="flex items-center gap-1.5">
+                          {idx === 0 && team.totalPoints > 0 ? (
+                            <span className="text-amber-500 text-xl drop-shadow-sm" title="Current Leader">🏆</span>
+                          ) : (
+                            <span>{idx + 1}</span>
+                          )}
+                        </div>
+                      </td>
                       <td className="p-4 font-medium text-lg flex items-center gap-3">
                         {team.flagUrl && <img src={team.flagUrl} alt="" className="w-8 h-6 rounded-sm object-cover shadow-sm" />}
                         {team.name}
