@@ -68,11 +68,12 @@ export default async function Dashboard() {
 
   const now = new Date();
   const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const tomorrowStart = new Date(todayStart.getTime() + 24 * 60 * 60 * 1000);
+  // Rolling 24-hour window from right now, to catch early morning matches tomorrow
+  const cutoffTime = new Date(now.getTime() + 24 * 60 * 60 * 1000);
 
-  const todaysMatches = matches.filter(m => new Date(m.startTime) >= todayStart && new Date(m.startTime) < tomorrowStart);
-  const upcomingMatches = matches.filter(m => new Date(m.startTime) >= tomorrowStart);
-  const completedMatches = matches.filter(m => m.status === 'FINISHED');
+  const todaysMatches = matches.filter(m => new Date(m.startTime) >= todayStart && new Date(m.startTime) < cutoffTime);
+  const upcomingMatches = matches.filter(m => new Date(m.startTime) >= cutoffTime);
+  const completedMatches = matches.filter(m => m.status === 'FINISHED').sort((a, b) => new Date(b.startTime).getTime() - new Date(a.startTime).getTime());
 
   const renderMatches = (matchList: typeof matches, allowPrediction: boolean = true) => {
     if (matchList.length === 0) {

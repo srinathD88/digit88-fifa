@@ -10,27 +10,30 @@ import { SubmitButton } from "@/components/SubmitButton";
 import Link from "next/link";
 
 export function MatchPredictionForm({ match, prediction, isLocked }: any) {
-  const [homeGoals, setHomeGoals] = useState<number>(prediction?.predictedHomeGoals ?? 0);
-  const [awayGoals, setAwayGoals] = useState<number>(prediction?.predictedAwayGoals ?? 0);
-  const [maxGoals, setMaxGoals] = useState<number>(prediction?.predictedMaxGoals ?? 0);
+  const [homeGoals, setHomeGoals] = useState<string>(prediction ? prediction.predictedHomeGoals.toString() : "");
+  const [awayGoals, setAwayGoals] = useState<string>(prediction ? prediction.predictedAwayGoals.toString() : "");
+  const [maxGoals, setMaxGoals] = useState<string>(prediction ? prediction.predictedMaxGoals.toString() : "");
+
+  const hG = parseInt(homeGoals) || 0;
+  const aG = parseInt(awayGoals) || 0;
 
   // Derived logic
   let winner = "DRAW";
-  let winningGoals = homeGoals;
-  let losingGoals = awayGoals;
+  let winningGoals = hG;
+  let losingGoals = aG;
 
-  if (homeGoals > awayGoals) {
+  if (hG > aG) {
     winner = match.homeTeamName;
-    winningGoals = homeGoals;
-    losingGoals = awayGoals;
-  } else if (awayGoals > homeGoals) {
+    winningGoals = hG;
+    losingGoals = aG;
+  } else if (aG > hG) {
     winner = match.awayTeamName;
-    winningGoals = awayGoals;
-    losingGoals = homeGoals;
+    winningGoals = aG;
+    losingGoals = hG;
   } else {
     winner = "DRAW";
-    winningGoals = homeGoals;
-    losingGoals = awayGoals;
+    winningGoals = hG;
+    losingGoals = aG;
   }
 
   return (
@@ -97,8 +100,9 @@ export function MatchPredictionForm({ match, prediction, isLocked }: any) {
                     required
                     disabled={isLocked}
                     value={homeGoals}
-                    onChange={(e) => setHomeGoals(parseInt(e.target.value) || 0)}
-                    className="w-24 text-center text-3xl h-16 font-black bg-black/40 border-2 border-white/10 focus-visible:ring-primary focus-visible:border-primary shadow-inner rounded-xl"
+                    onChange={(e) => setHomeGoals(e.target.value)}
+                    placeholder="0"
+                    className="w-24 text-center text-3xl h-16 font-black bg-black/40 border-2 border-white/10 focus-visible:ring-primary focus-visible:border-primary shadow-inner rounded-xl placeholder:text-muted-foreground/30"
                   />
                 </div>
 
@@ -113,8 +117,9 @@ export function MatchPredictionForm({ match, prediction, isLocked }: any) {
                     required
                     disabled={isLocked}
                     value={awayGoals}
-                    onChange={(e) => setAwayGoals(parseInt(e.target.value) || 0)}
-                    className="w-24 text-center text-3xl h-16 font-black bg-black/40 border-2 border-white/10 focus-visible:ring-primary focus-visible:border-primary shadow-inner rounded-xl"
+                    onChange={(e) => setAwayGoals(e.target.value)}
+                    placeholder="0"
+                    className="w-24 text-center text-3xl h-16 font-black bg-black/40 border-2 border-white/10 focus-visible:ring-primary focus-visible:border-primary shadow-inner rounded-xl placeholder:text-muted-foreground/30"
                   />
                 </div>
                 
@@ -136,8 +141,9 @@ export function MatchPredictionForm({ match, prediction, isLocked }: any) {
                     required
                     disabled={isLocked}
                     value={maxGoals}
-                    onChange={(e) => setMaxGoals(parseInt(e.target.value) || 0)}
-                    className="w-24 text-center text-3xl h-16 font-black bg-black/40 border-2 border-white/10 focus-visible:ring-accent focus-visible:border-accent shadow-inner rounded-xl"
+                    onChange={(e) => setMaxGoals(e.target.value)}
+                    placeholder="0"
+                    className="w-24 text-center text-3xl h-16 font-black bg-black/40 border-2 border-white/10 focus-visible:ring-accent focus-visible:border-accent shadow-inner rounded-xl placeholder:text-muted-foreground/30"
                   />
                 </div>
               </div>
