@@ -194,8 +194,30 @@ export class WorldCup26Provider implements MatchProvider {
           continue; // Skip API update if manually overridden
         }
 
-        // Date parsing: API local_date is provided without timezone but is actually UTC.
-        let startTime = new Date(game.local_date + " UTC");
+        // The API local_date is the literal wall-clock time at the stadium.
+        // Because the 2026 World Cup spans 4 timezones across North America,
+        // we MUST map each stadium to its specific summer UTC offset (EDT, CDT, CST, PDT).
+        const stadiumOffsets: Record<string, string> = {
+          "1": "-06:00", // Mexico City (No DST)
+          "2": "-06:00", // Guadalajara (No DST)
+          "3": "-06:00", // Monterrey (No DST)
+          "4": "-05:00", // Dallas (CDT)
+          "5": "-05:00", // Houston (CDT)
+          "6": "-05:00", // Kansas City (CDT)
+          "7": "-04:00", // Atlanta (EDT)
+          "8": "-04:00", // Miami (EDT)
+          "9": "-04:00", // Boston (EDT)
+          "10": "-04:00", // Philadelphia (EDT)
+          "11": "-04:00", // NY/NJ (EDT)
+          "12": "-04:00", // Toronto (EDT)
+          "13": "-07:00", // Vancouver (PDT)
+          "14": "-07:00", // Seattle (PDT)
+          "15": "-07:00", // San Francisco (PDT)
+          "16": "-07:00", // Los Angeles (PDT)
+        };
+        const offset = stadiumOffsets[game.stadium_id?.toString()] || "-04:00";
+        let startTime = new Date(game.local_date + " " + offset);
+        
         if (isNaN(startTime.getTime())) {
           startTime = new Date(game.local_date); // Fallback
           if (isNaN(startTime.getTime())) startTime = new Date();
