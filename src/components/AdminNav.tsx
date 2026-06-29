@@ -12,6 +12,7 @@ export function AdminNav() {
     { name: "Users", path: "/admin/users" },
     { name: "Scoring", path: "/admin/scoring" },
     { name: "Matches", path: "/admin/matches" },
+    { name: "Teams", path: "/admin/teams" },
     { name: "Predictions", path: "/admin/predictions" },
     { name: "Settings", path: "/admin/settings" },
   ];

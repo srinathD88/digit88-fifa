@@ -413,3 +413,27 @@ export async function createMatchManualAction(formData: FormData) {
   revalidatePath("/admin/matches");
   revalidatePath("/");
 }
+
+export async function toggleTeamEliminationAction(formData: FormData) {
+  const admin = await verifyAdmin();
+  const teamId = formData.get("teamId") as string;
+  const isEliminated = formData.get("isEliminated") === "true";
+
+  const updatedTeam = await prisma.team.update({
+    where: { id: teamId },
+    data: { isEliminated }
+  });
+
+  await prisma.auditLog.create({
+    data: {
+      action: "TOGGLE_TEAM_ELIMINATION",
+      userId: admin.id,
+      entityType: "TEAM",
+      entityId: teamId,
+      metadata: { isEliminated }
+    }
+  });
+
+  revalidatePath("/admin/teams");
+  revalidatePath("/team-selection");
+}

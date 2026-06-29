@@ -178,6 +178,7 @@ model Team {
   groupId     String?
   group       Group?   @relation(fields: [groupId], references: [id])
   
+  isEliminated Boolean  @default(false)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 

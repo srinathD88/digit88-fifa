@@ -103,7 +103,8 @@ export default async function LeaderboardPage() {
                       </td>
                       <td className="p-4 font-medium text-lg flex items-center gap-3">
                         {team.flagUrl && <img src={team.flagUrl} alt="" className="w-8 h-6 rounded-sm object-cover shadow-sm" />}
-                        {team.name}
+                        <span>{team.name}</span>
+                        <span className="text-muted-foreground text-sm font-normal ml-1">({(team as any).usersCount || 0})</span>
                       </td>
                       <td className="p-4 text-muted-foreground">{team.country}</td>
                       <td className="p-4 font-black text-right text-accent text-xl">{team.totalPoints}</td>

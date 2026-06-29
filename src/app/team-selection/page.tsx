@@ -13,9 +13,10 @@ async function selectTeam(formData: FormData) {
   const teamId = formData.get("teamId") as string;
   if (!teamId) throw new Error("Team ID is required");
 
-  // Verify the team exists
+  // Verify the team exists and is not eliminated
   const team = await prisma.team.findUnique({ where: { id: teamId } });
   if (!team) throw new Error("Invalid team selected");
+  if (team.isEliminated) throw new Error("This team is no longer available.");
 
   // Assign team to user and set teamSelectedAt lock
   await prisma.user.update({
@@ -43,6 +44,7 @@ export default async function TeamSelectionPage() {
   }
 
   const teams = await prisma.team.findMany({
+    where: { isEliminated: false },
     orderBy: { name: 'asc' }
   });
 

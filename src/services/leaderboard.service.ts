@@ -45,7 +45,8 @@ export async function getTeamLeaderboard() {
       name: team.name,
       country: team.country,
       flagUrl: team.flagUrl,
-      totalPoints
+      totalPoints,
+      usersCount: teamUsers.length
     };
   }).sort((a, b) => b.totalPoints - a.totalPoints);
 }
