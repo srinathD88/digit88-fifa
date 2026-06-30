@@ -8,7 +8,10 @@ export default async function LeaderboardPage() {
   const session = await auth();
   if (!session?.user) redirect("/");
 
-  if (!(session.user as any).teamId) {
+  const currentUserTeamId = (session.user as any).teamId;
+  const currentUserId = session.user.id;
+
+  if (!currentUserTeamId) {
     redirect("/team-selection");
   }
 
@@ -16,6 +19,17 @@ export default async function LeaderboardPage() {
     getIndividualLeaderboard(),
     getTeamLeaderboard()
   ]);
+
+  const currentUserData = individualLeaderboard.findIndex(u => u.userId === currentUserId);
+  const myRank = currentUserData !== -1 ? currentUserData + 1 : null;
+  const myStats = currentUserData !== -1 ? individualLeaderboard[currentUserData] : null;
+
+  const getRankBadge = (idx: number) => {
+    if (idx === 0) return <span className="text-amber-500 text-2xl drop-shadow-sm" title="1st Place">👑</span>;
+    if (idx === 1) return <span className="text-gray-300 text-2xl drop-shadow-sm" title="2nd Place">🥈</span>;
+    if (idx === 2) return <span className="text-amber-700 text-2xl drop-shadow-sm" title="3rd Place">🥉</span>;
+    return <span className="text-muted-foreground font-bold">#{idx + 1}</span>;
+  };
 
   return (
     <div className="container mx-auto py-12 px-4 relative z-10">
@@ -31,42 +45,67 @@ export default async function LeaderboardPage() {
           </CardHeader>
           <CardContent className="p-0">
             <div className="overflow-x-auto">
-              <table className="w-full">
+              <table className="w-full relative">
                 <thead>
-                  <tr className="border-b border-border/40 text-left text-sm text-muted-foreground">
-                    <th className="p-4 font-semibold">Rank</th>
-                    <th className="p-4 font-semibold">Name</th>
-                    <th className="p-4 font-semibold">Team</th>
-                    <th className="p-4 font-semibold text-right">Points</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {individualLeaderboard.map((user, idx) => (
-                    <tr key={user.userId} className="border-b border-border/20 hover:bg-white/5 transition-colors">
-                      <td className="p-4 font-bold text-lg">
-                        <div className="flex items-center gap-1.5">
-                          {idx === 0 && user.points > 0 ? (
-                            <span className="text-amber-500 text-xl drop-shadow-sm" title="Current Leader">🏆</span>
-                          ) : (
-                            <span>{idx + 1}</span>
-                          )}
+                <tr className="border-b border-border/40 text-left text-sm text-muted-foreground shadow-sm">
+                  <th className="p-4 font-semibold">Rank</th>
+                  <th className="p-4 font-semibold">User</th>
+                  <th className="p-4 font-semibold hidden md:table-cell group cursor-help" title="Perfect Predictions: Exact winner, exact score, and exact max goals">
+                    <div className="flex items-center gap-1 underline decoration-dotted">
+                      Perfects <span className="text-xs">ℹ️</span>
+                    </div>
+                  </th>
+                  <th className="p-4 font-semibold text-right">Points</th>
+                </tr>
+              </thead>
+              <tbody>
+                {individualLeaderboard.map((user, idx) => {
+                  const isMe = user.userId === currentUserId;
+                  return (
+                    <tr 
+                      key={user.userId} 
+                      className={`border-b border-border/20 transition-colors ${
+                        isMe ? 'bg-primary/10 border-l-4 border-l-primary' : 'hover:bg-white/5'
+                      }`}
+                    >
+                      <td className="p-4 w-20">
+                        <div className="flex items-center justify-center w-8">
+                          {getRankBadge(idx)}
                         </div>
                       </td>
-                      <td className="p-4 font-medium">{user.name}</td>
-                      <td className="p-4 text-muted-foreground flex items-center gap-2">
-                        {user.flagUrl && <img src={user.flagUrl} alt="" className="w-6 h-4 rounded-sm object-cover" />}
-                        {user.team}
+                      <td className="p-4">
+                        <div className="flex flex-col">
+                          <span className={`font-bold text-lg flex items-center gap-2 ${isMe ? 'text-primary' : ''}`}>
+                            {isMe && <span className="text-base">👤</span>}
+                            {user.name}
+                            {isMe && <span className="text-[10px] bg-primary/20 text-primary px-1.5 py-0.5 rounded uppercase tracking-wider ml-1 font-bold">(You)</span>}
+                          </span>
+                          <span className="text-muted-foreground text-xs flex items-center gap-1.5 mt-0.5 font-medium">
+                            {user.flagUrl && <img src={user.flagUrl} alt="" className="w-4 h-3 rounded-sm object-cover" />}
+                            {user.team}
+                          </span>
+                        </div>
                       </td>
-                      <td className="p-4 font-black text-right text-accent">{user.points}</td>
+                      <td className="p-4 hidden md:table-cell font-bold text-accent text-lg">
+                        {user.perfectCount > 0 ? (
+                           <span className="flex items-center gap-1.5">🎯 {user.perfectCount}</span>
+                        ) : (
+                           <span className="text-muted-foreground font-normal">—</span>
+                        )}
+                      </td>
+                      <td className="p-4 font-black text-right text-xl whitespace-nowrap">
+                        {user.points} <span className="text-sm font-bold text-muted-foreground">pts</span>
+                      </td>
                     </tr>
-                  ))}
-                  {individualLeaderboard.length === 0 && (
-                    <tr>
-                      <td colSpan={4} className="p-8 text-center text-muted-foreground">No scores calculated yet.</td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
+                  );
+                })}
+                {individualLeaderboard.length === 0 && (
+                  <tr>
+                    <td colSpan={4} className="p-8 text-center text-muted-foreground">No scores calculated yet.</td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
             </div>
           </CardContent>
         </Card>
@@ -80,43 +119,52 @@ export default async function LeaderboardPage() {
           </CardHeader>
           <CardContent className="p-0">
             <div className="overflow-x-auto">
-              <table className="w-full">
+              <table className="w-full relative">
                 <thead>
-                  <tr className="border-b border-border/40 text-left text-sm text-muted-foreground">
-                    <th className="p-4 font-semibold">Rank</th>
-                    <th className="p-4 font-semibold">Team</th>
-                    <th className="p-4 font-semibold">Country</th>
-                    <th className="p-4 font-semibold text-right">Total Points</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {teamLeaderboard.map((team, idx) => (
-                    <tr key={team.id} className="border-b border-border/20 hover:bg-white/5 transition-colors">
-                      <td className="p-4 font-bold text-lg">
-                        <div className="flex items-center gap-1.5">
-                          {idx === 0 && team.totalPoints > 0 ? (
-                            <span className="text-amber-500 text-xl drop-shadow-sm" title="Current Leader">🏆</span>
-                          ) : (
-                            <span>{idx + 1}</span>
-                          )}
+                <tr className="border-b border-border/40 text-left text-sm text-muted-foreground shadow-sm">
+                  <th className="p-4 font-semibold">Rank</th>
+                  <th className="p-4 font-semibold">Team</th>
+                  <th className="p-4 font-semibold text-right">Total Points</th>
+                </tr>
+              </thead>
+              <tbody>
+                {teamLeaderboard.map((team, idx) => {
+                  const isMyTeam = team.id === currentUserTeamId;
+                  return (
+                    <tr 
+                      key={team.id} 
+                      className={`border-b border-border/20 transition-colors ${
+                        isMyTeam ? 'bg-accent/10 border-l-4 border-l-accent' : 'hover:bg-white/5'
+                      }`}
+                    >
+                      <td className="p-4 w-20">
+                        <div className="flex items-center justify-center w-8">
+                          {getRankBadge(idx)}
                         </div>
                       </td>
-                      <td className="p-4 font-medium text-lg flex items-center gap-3">
-                        {team.flagUrl && <img src={team.flagUrl} alt="" className="w-8 h-6 rounded-sm object-cover shadow-sm" />}
-                        <span>{team.name}</span>
-                        <span className="text-muted-foreground text-sm font-normal ml-1">({(team as any).usersCount || 0})</span>
+                      <td className="p-4">
+                        <div className="flex flex-col">
+                           <span className={`font-bold text-lg flex items-center gap-2 ${isMyTeam ? 'text-accent' : ''}`}>
+                             {team.flagUrl && <img src={team.flagUrl} alt="" className="w-6 h-4 rounded-sm object-cover shadow-sm" />}
+                             {team.name}
+                             {isMyTeam && <span className="text-[10px] bg-accent/20 text-accent px-1.5 py-0.5 rounded uppercase tracking-wider ml-1 flex items-center gap-1 font-bold">👥 Your Team</span>}
+                           </span>
+                           <span className="text-muted-foreground text-xs font-normal mt-0.5">{(team as any).usersCount || 0} Members</span>
+                        </div>
                       </td>
-                      <td className="p-4 text-muted-foreground">{team.country}</td>
-                      <td className="p-4 font-black text-right text-accent text-xl">{team.totalPoints}</td>
+                      <td className="p-4 font-black text-right text-xl whitespace-nowrap">
+                        {team.totalPoints} <span className="text-sm font-bold text-muted-foreground">pts</span>
+                      </td>
                     </tr>
-                  ))}
-                  {teamLeaderboard.length === 0 && (
-                    <tr>
-                      <td colSpan={4} className="p-8 text-center text-muted-foreground">No teams found.</td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
+                  );
+                })}
+                {teamLeaderboard.length === 0 && (
+                  <tr>
+                    <td colSpan={3} className="p-8 text-center text-muted-foreground">No teams found.</td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
             </div>
           </CardContent>
         </Card>
