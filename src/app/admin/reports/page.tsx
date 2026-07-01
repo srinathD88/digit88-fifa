@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { ExportSummaryButton } from "./ExportSummaryButton";
 import { getIndividualLeaderboard } from "@/services/leaderboard.service";
+import { getTournamentAwards } from "@/lib/cache/leaderboard";
 import { CopyButton } from "./CopyButton";
 
 export const revalidate = 60; // Cache for 60 seconds
@@ -128,7 +129,10 @@ export default async function ReportsDashboardPage() {
   const leaderboard = await getIndividualLeaderboard();
   const topPredictors = leaderboard.slice(0, 5);
 
-  // 7. Team Engagement
+  // 7. Tournament Awards
+  const { awardsList } = await getTournamentAwards();
+
+  // 8. Team Engagement
   const userPointsMap = new Map();
   allPredictions.forEach(stat => {
     userPointsMap.set(stat.userId, (userPointsMap.get(stat.userId) || 0) + (stat.pointsAwarded || 0));
@@ -222,8 +226,62 @@ ${missingPredictionsMap.reduce((acc, curr) => acc + curr.missingCount, 0)}`;
         </div>
       </section>
 
+      {/* 1.5 Tournament Awards */}
+      <section className="mt-10">
+        <h2 className="text-xl font-bold mb-4 uppercase tracking-wider text-muted-foreground border-b border-border/50 pb-2">🏆 Tournament Awards</h2>
+        
+        <div className="space-y-4">
+          {['overall', 'stage', 'performance'].map((categoryType) => {
+            const categoryAwards = awardsList.filter(a => a.type === categoryType);
+            if (categoryAwards.length === 0) return null;
+            
+            const title = categoryType === 'overall' ? "Overall Awards" : categoryType === 'stage' ? "Stage Awards" : "Performance Awards";
+            
+            return (
+              <details key={categoryType} className="group glass-card rounded-xl overflow-hidden [&_summary::-webkit-details-marker]:hidden" open={categoryType === 'overall'}>
+                <summary className="p-4 bg-white/5 cursor-pointer font-bold uppercase tracking-wider flex justify-between items-center outline-none select-none">
+                  {title}
+                  <span className="text-muted-foreground transition-transform group-open:rotate-180">▼</span>
+                </summary>
+                <div className="p-6 border-t border-border/50 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                  {categoryAwards.map(award => (
+                    <div key={award.key}>
+                      <h3 className="text-primary font-bold mb-4 uppercase text-sm tracking-widest">{award.title}</h3>
+                      <div className="space-y-3 pl-4 border-l-2 border-border/30">
+                        {[
+                          { rank: '🥇', winners: award.rankings.first },
+                          { rank: '🥈', winners: award.rankings.second },
+                          { rank: '🥉', winners: award.rankings.third }
+                        ].map((tier, i) => (
+                          tier.winners.length > 0 && (
+                            <div key={i} className="space-y-2">
+                              {tier.winners.map((w: any) => (
+                                <div key={w.id} className="flex gap-3 items-center">
+                                  <span className="w-6 text-center text-lg">{tier.rank}</span>
+                                  <div className="flex-1 flex justify-between items-center">
+                                    <span className="font-bold text-sm">{w.name}</span>
+                                    <span className="text-xs text-muted-foreground font-bold">
+                                      <span className="text-accent text-sm mr-0.5">{w.score}</span>
+                                      {award.key === 'mostPerfect' ? 'perf' : award.key === 'mostConsistent' ? 'preds' : 'pts'}
+                                    </span>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          )
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </details>
+            );
+          })}
+        </div>
+      </section>
+
       {/* 2. Today's Highlights */}
-      <section>
+      <section className="mt-10">
         <h2 className="text-xl font-bold mb-4 uppercase tracking-wider text-muted-foreground border-b border-border/50 pb-2">Today's Highlights</h2>
         <div className="grid md:grid-cols-3 gap-4">
           <Card className="glass-card">
@@ -495,6 +553,13 @@ ${missingPredictionsMap.reduce((acc, curr) => acc + curr.missingCount, 0)}`;
           </Card>
         </section>
       </div>
+
+
+
+      <footer className="mt-16 text-center text-sm text-muted-foreground border-t border-border/50 pt-8">
+        <p>Awards calculated</p>
+        <p className="font-bold">{now.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })} {now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}</p>
+      </footer>
 
     </div>
   );

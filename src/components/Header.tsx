@@ -5,6 +5,8 @@ import { prisma } from "@/lib/prisma";
 import { HeaderNav } from "@/components/HeaderNav";
 import { Digit88Logo } from "@/components/Digit88Logo";
 import { getUserLeaderboardStats } from "@/services/leaderboard.service";
+import { getTournamentAwards } from "@/lib/cache/leaderboard";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 export async function Header() {
   const session = await auth();
@@ -19,8 +21,16 @@ export async function Header() {
   const rank = stats?.rank || "-";
   const flagUrl = stats?.flagUrl || null;
 
+  const { userAwards } = await getTournamentAwards();
+  const myAwards = userAwards[session.user.id] || [];
+  
+  const priority = { "overall": 1, "performance": 2, "stage": 3 };
+  const sortedAwards = [...myAwards].sort((a, b) => priority[a.type as keyof typeof priority] - priority[b.type as keyof typeof priority]);
+  const visibleAwards = sortedAwards;
+
   return (
-    <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-10 border-b border-border/40 pb-6 relative z-10 w-full">
+    <TooltipProvider>
+      <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-10 border-b border-border/40 pb-6 relative z-10 w-full">
       <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 sm:gap-8 w-full md:w-auto justify-between sm:justify-start">
         <Link href="/" className="flex items-center hover:opacity-80 transition-opacity">
           <Digit88Logo className="h-10 w-auto" />
@@ -52,6 +62,32 @@ export async function Header() {
               </>
             )}
           </div>
+          {myAwards.length > 0 && (
+            <div className="flex items-center gap-1 mt-1">
+              {visibleAwards.map((award: any, i: number) => {
+                let bgColor = "bg-primary/20 text-primary border-primary/20";
+                if (award.badge.includes("🥇") || award.badge.includes("🏆")) bgColor = "bg-amber-500/20 text-amber-500 border-amber-500/20";
+                else if (award.badge.includes("🥈")) bgColor = "bg-slate-400/20 text-slate-300 border-slate-400/20";
+                else if (award.badge.includes("🥉")) bgColor = "bg-amber-700/20 text-amber-600 border-amber-700/20";
+                if (award.type === "performance" && award.badge.includes("🎯")) bgColor = "bg-emerald-500/20 text-emerald-500 border-emerald-500/20";
+                if (award.type === "performance" && award.badge.includes("📈")) bgColor = "bg-blue-500/20 text-blue-500 border-blue-500/20";
+                if (award.type === "stage") bgColor = "bg-purple-500/20 text-purple-400 border-purple-500/20";
+
+                return (
+                  <Tooltip key={i}>
+                    <TooltipTrigger>
+                      <span className={`text-[9px] px-1.5 py-0.5 rounded uppercase tracking-wider font-bold cursor-default border ${bgColor}`}>
+                        {award.badge}
+                      </span>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      {award.title}
+                    </TooltipContent>
+                  </Tooltip>
+                );
+              })}
+            </div>
+          )}
         </div>
         <form action={async () => {
           "use server"
@@ -62,5 +98,6 @@ export async function Header() {
         </form>
       </div>
     </header>
+    </TooltipProvider>
   );
 }

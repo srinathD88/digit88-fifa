@@ -5,9 +5,9 @@ export async function register() {
     const { syncFixturesService, syncResultsService } = await import("./services/match.service");
     const { processPendingMatches } = await import("./services/scoring.service");
     const { prisma } = await import("./lib/prisma");
-    
+
     console.log("[Instrumentation] Registering cron jobs...");
-    
+
     // Sync fixtures daily (1 request/day)
     cron.schedule(process.env.CRON_SYNC_FIXTURES || "0 0 * * *", async () => {
       try {
@@ -28,7 +28,7 @@ export async function register() {
             ]
           }
         });
-        
+
         if (liveMatchCount > 0) {
           console.log(`[Cron] Found ${liveMatchCount} live/pending matches. Triggering results sync.`);
           await syncResultsService();

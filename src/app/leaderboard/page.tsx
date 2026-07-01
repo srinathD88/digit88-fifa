@@ -1,8 +1,9 @@
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Header } from "@/components/Header";
-import { getIndividualLeaderboard, getTeamLeaderboard } from "@/lib/cache/leaderboard";
+import { getIndividualLeaderboard, getTeamLeaderboard, getTournamentAwards } from "@/lib/cache/leaderboard";
 
 export default async function LeaderboardPage() {
   const session = await auth();
@@ -15,10 +16,13 @@ export default async function LeaderboardPage() {
     redirect("/team-selection");
   }
 
-  const [individualLeaderboard, teamLeaderboard] = await Promise.all([
+  const [individualLeaderboard, teamLeaderboard, awardsData] = await Promise.all([
     getIndividualLeaderboard(),
-    getTeamLeaderboard()
+    getTeamLeaderboard(),
+    getTournamentAwards()
   ]);
+
+  const userAwards = awardsData.userAwards;
 
   const currentUserData = individualLeaderboard.findIndex(u => u.userId === currentUserId);
   const myRank = currentUserData !== -1 ? currentUserData + 1 : null;
@@ -32,10 +36,11 @@ export default async function LeaderboardPage() {
   };
 
   return (
-    <div className="container mx-auto py-12 px-4 relative z-10">
-      <Header />
+    <TooltipProvider>
+      <div className="container mx-auto py-12 px-4 relative z-10">
+        <Header />
 
-      <div className="grid gap-10 lg:grid-cols-2">
+        <div className="grid gap-10 lg:grid-cols-2">
         {/* Individual Leaderboard */}
         <Card className="glass-card overflow-hidden border-border/50">
           <CardHeader className="bg-primary/5 border-b border-border/50">
@@ -50,11 +55,6 @@ export default async function LeaderboardPage() {
                 <tr className="border-b border-border/40 text-left text-sm text-muted-foreground shadow-sm">
                   <th className="p-4 font-semibold">Rank</th>
                   <th className="p-4 font-semibold">User</th>
-                  <th className="p-4 font-semibold hidden md:table-cell group cursor-help" title="Perfect Predictions: Exact winner, exact score, and exact max goals">
-                    <div className="flex items-center gap-1 underline decoration-dotted">
-                      Perfects <span className="text-xs">ℹ️</span>
-                    </div>
-                  </th>
                   <th className="p-4 font-semibold text-right">Points</th>
                 </tr>
               </thead>
@@ -80,18 +80,59 @@ export default async function LeaderboardPage() {
                             {user.name}
                             {isMe && <span className="text-[10px] bg-primary/20 text-primary px-1.5 py-0.5 rounded uppercase tracking-wider ml-1 font-bold">(You)</span>}
                           </span>
-                          <span className="text-muted-foreground text-xs flex items-center gap-1.5 mt-0.5 font-medium">
+                          <span className="text-muted-foreground text-xs flex items-center gap-1.5 mt-0.5 font-medium flex-wrap">
                             {user.flagUrl && <img src={user.flagUrl} alt="" className="w-4 h-3 rounded-sm object-cover" />}
                             {user.team}
+                            {user.perfectCount > 0 && (
+                              <Tooltip>
+                                <TooltipTrigger>
+                                  <span className="ml-1 text-[10px] bg-emerald-500/20 text-emerald-500 border border-emerald-500/20 px-1.5 py-0.5 rounded uppercase tracking-wider font-bold cursor-help shadow-sm">
+                                    🎯 {user.perfectCount}
+                                  </span>
+                                </TooltipTrigger>
+                                <TooltipContent>Perfect Predictions</TooltipContent>
+                              </Tooltip>
+                            )}
+                            {(() => {
+                              const awards = userAwards[user.userId];
+                              if (!awards || awards.length === 0) return null;
+                              
+                              const priority = { "overall": 1, "performance": 2, "stage": 3 };
+                              const sortedAwards = [...awards].sort((a, b) => priority[a.type as keyof typeof priority] - priority[b.type as keyof typeof priority]);
+                              
+                              const visibleAwards = sortedAwards;
+                              
+                              const renderBadge = (award: any, i: number) => {
+                                let bgColor = "bg-primary/20 text-primary border-primary/20";
+                                if (award.badge.includes("🥇") || award.badge.includes("🏆")) bgColor = "bg-amber-500/20 text-amber-500 border-amber-500/20";
+                                else if (award.badge.includes("🥈")) bgColor = "bg-slate-400/20 text-slate-300 border-slate-400/20";
+                                else if (award.badge.includes("🥉")) bgColor = "bg-amber-700/20 text-amber-600 border-amber-700/20";
+                                if (award.type === "performance" && award.badge.includes("🎯")) bgColor = "bg-emerald-500/20 text-emerald-500 border-emerald-500/20";
+                                if (award.type === "performance" && award.badge.includes("📈")) bgColor = "bg-blue-500/20 text-blue-500 border-blue-500/20";
+                                if (award.type === "stage") bgColor = "bg-purple-500/20 text-purple-400 border-purple-500/20";
+                                
+                                return (
+                                  <Tooltip key={i}>
+                                    <TooltipTrigger>
+                                      <span className={`text-[10px] px-1.5 py-0.5 rounded uppercase tracking-wider font-bold shadow-sm cursor-default border ${bgColor}`}>
+                                        {award.badge}
+                                      </span>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                      {award.title}
+                                    </TooltipContent>
+                                  </Tooltip>
+                                );
+                              };
+                              
+                              return (
+                                <span className="ml-1 flex items-center gap-1 flex-wrap">
+                                  {visibleAwards.map((a, i) => renderBadge(a, i))}
+                                </span>
+                              );
+                            })()}
                           </span>
                         </div>
-                      </td>
-                      <td className="p-4 hidden md:table-cell font-bold text-accent text-lg">
-                        {user.perfectCount > 0 ? (
-                           <span className="flex items-center gap-1.5">🎯 {user.perfectCount}</span>
-                        ) : (
-                           <span className="text-muted-foreground font-normal">—</span>
-                        )}
                       </td>
                       <td className="p-4 font-black text-right text-xl whitespace-nowrap">
                         {user.points} <span className="text-sm font-bold text-muted-foreground">pts</span>
@@ -101,7 +142,7 @@ export default async function LeaderboardPage() {
                 })}
                 {individualLeaderboard.length === 0 && (
                   <tr>
-                    <td colSpan={4} className="p-8 text-center text-muted-foreground">No scores calculated yet.</td>
+                    <td colSpan={3} className="p-8 text-center text-muted-foreground">No scores calculated yet.</td>
                   </tr>
                 )}
               </tbody>
@@ -169,6 +210,7 @@ export default async function LeaderboardPage() {
           </CardContent>
         </Card>
       </div>
-    </div>
+      </div>
+    </TooltipProvider>
   );
 }
