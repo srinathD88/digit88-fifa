@@ -229,15 +229,18 @@ export class WorldCup26Provider implements MatchProvider {
 
         let stage: MatchStage = "GROUP";
         const typeStr = (game.type || "").toLowerCase();
-        if (typeStr.includes("32")) stage = "ROUND_OF_32";
-        else if (typeStr.includes("16")) stage = "ROUND_OF_16";
-        else if (typeStr.includes("quarter")) stage = "QUARTER_FINAL";
-        else if (typeStr.includes("semi")) stage = "SEMI_FINAL";
-        else if (typeStr.includes("third")) stage = "THIRD_PLACE";
-        else if (typeStr.includes("final")) stage = "FINAL";
+        if (typeStr === "r32" || typeStr.includes("32")) stage = "ROUND_OF_32";
+        else if (typeStr === "r16" || typeStr.includes("16")) stage = "ROUND_OF_16";
+        else if (typeStr === "qf" || typeStr.includes("quarter")) stage = "QUARTER_FINAL";
+        else if (typeStr === "sf" || typeStr.includes("semi")) stage = "SEMI_FINAL";
+        else if (typeStr === "third" || typeStr.includes("third")) stage = "THIRD_PLACE";
+        else if (typeStr === "final") stage = "FINAL";
 
         const homeScore = game.home_score ? parseInt(game.home_score) : null;
         const awayScore = game.away_score ? parseInt(game.away_score) : null;
+        const homePenaltyScore = game.home_penalty_score ? parseInt(game.home_penalty_score) : null;
+        const awayPenaltyScore = game.away_penalty_score ? parseInt(game.away_penalty_score) : null;
+        const isPenaltyShootout = homePenaltyScore !== null && awayPenaltyScore !== null;
         const homeTeamName = game.home_team_name_en || game.home_team_label || "TBD";
         const awayTeamName = game.away_team_name_en || game.away_team_label || "TBD";
 
@@ -261,6 +264,9 @@ export class WorldCup26Provider implements MatchProvider {
             stage,
             homeScore: isNaN(homeScore!) ? null : homeScore,
             awayScore: isNaN(awayScore!) ? null : awayScore,
+            homePenaltyScore,
+            awayPenaltyScore,
+            isPenaltyShootout,
             actualMaxGoals,
             winner,
             homeTeamName,
@@ -284,6 +290,9 @@ export class WorldCup26Provider implements MatchProvider {
             stage,
             homeScore: isNaN(homeScore!) ? null : homeScore,
             awayScore: isNaN(awayScore!) ? null : awayScore,
+            homePenaltyScore,
+            awayPenaltyScore,
+            isPenaltyShootout,
             actualMaxGoals,
             winner
           }

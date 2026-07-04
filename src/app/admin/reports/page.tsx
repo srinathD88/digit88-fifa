@@ -1,9 +1,10 @@
 import { prisma } from "@/lib/prisma";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { ExportSummaryButton } from "./ExportSummaryButton";
-import { getIndividualLeaderboard } from "@/services/leaderboard.service";
+import { getIndividualLeaderboard, AWARD_CONFIG } from "@/services/leaderboard.service";
 import { getTournamentAwards } from "@/lib/cache/leaderboard";
 import { CopyButton } from "./CopyButton";
+import { stageLabel } from "@/lib/utils";
 
 export const revalidate = 60; // Cache for 60 seconds
 
@@ -130,7 +131,7 @@ export default async function ReportsDashboardPage() {
   const topPredictors = leaderboard.slice(0, 5);
 
   // 7. Tournament Awards
-  const { awardsList } = await getTournamentAwards();
+  const { awardsList, teamAward } = await getTournamentAwards();
 
   // 8. Team Engagement
   const userPointsMap = new Map();
@@ -229,50 +230,92 @@ ${missingPredictionsMap.reduce((acc, curr) => acc + curr.missingCount, 0)}`;
       {/* 1.5 Tournament Awards */}
       <section className="mt-10">
         <h2 className="text-xl font-bold mb-4 uppercase tracking-wider text-muted-foreground border-b border-border/50 pb-2">🏆 Tournament Awards</h2>
-        
+
+        {/* Top Winning Team */}
+        {teamAward && (
+          <div className="glass-card rounded-xl p-5 mb-4">
+            <p className="text-sm font-bold text-accent uppercase tracking-widest mb-3">🏆 Top Winning Team (Avg Points)</p>
+            <div className="flex items-center gap-3 mb-3">
+              {(teamAward as any).flagUrl && <img src={(teamAward as any).flagUrl} alt="" className="w-8 h-5 rounded object-cover" />}
+              <span className="font-black text-lg">{(teamAward as any).teamName}</span>
+              <span className="text-accent font-bold text-sm">{Math.round((teamAward as any).avgPoints)} avg pts · {(teamAward as any).totalPoints} total</span>
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+              {((teamAward as any).members as any[]).map((m, i) => (
+                <div key={m.id} className="flex justify-between text-sm bg-white/5 px-3 py-1.5 rounded-lg">
+                  <span className="text-muted-foreground text-xs mr-1">#{i+1}</span>
+                  <span className="font-semibold flex-1">{m.name}</span>
+                  <span className="text-accent font-bold">{m.totalPoints}pts</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         <div className="space-y-4">
-          {['overall', 'stage', 'performance'].map((categoryType) => {
-            const categoryAwards = awardsList.filter(a => a.type === categoryType);
-            if (categoryAwards.length === 0) return null;
-            
-            const title = categoryType === 'overall' ? "Overall Awards" : categoryType === 'stage' ? "Stage Awards" : "Performance Awards";
-            
+          {[
+            { type: 'overall',   label: 'The Podiums',               open: true  },
+            { type: 'milestone', label: 'Round-by-Round Milestones', open: false },
+            { type: 'streak',    label: 'Streak & Precision',        open: false },
+            { type: 'comeback',  label: 'Comeback & Progression',    open: false },
+            { type: 'stage',     label: 'Stage Winners',             open: false },
+          ].map(({ type: categoryType, label: title, open }) => {
+            const configAwards = AWARD_CONFIG.filter((a: any) => a.type === categoryType);
+            const awardsMap = new Map(awardsList.map((a: any) => [a.key, a]));
+
+            const getScoreLabel = (calc: string) => {
+              if (calc === 'RISING_STAR')    return 'rank jump';
+              if (calc === 'PENALTY_SHOOTER') return 'correct';
+              if (calc === 'WINNING_STREAK') return '-win streak';
+              return 'pts';
+            };
+
             return (
-              <details key={categoryType} className="group glass-card rounded-xl overflow-hidden [&_summary::-webkit-details-marker]:hidden" open={categoryType === 'overall'}>
+              <details key={categoryType} className="group glass-card rounded-xl overflow-hidden [&_summary::-webkit-details-marker]:hidden" open={open}>
                 <summary className="p-4 bg-white/5 cursor-pointer font-bold uppercase tracking-wider flex justify-between items-center outline-none select-none">
                   {title}
                   <span className="text-muted-foreground transition-transform group-open:rotate-180">▼</span>
                 </summary>
                 <div className="p-6 border-t border-border/50 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                  {categoryAwards.map(award => (
-                    <div key={award.key}>
-                      <h3 className="text-primary font-bold mb-4 uppercase text-sm tracking-widest">{award.title}</h3>
-                      <div className="space-y-3 pl-4 border-l-2 border-border/30">
-                        {[
-                          { rank: '🥇', winners: award.rankings.first },
-                          { rank: '🥈', winners: award.rankings.second },
-                          { rank: '🥉', winners: award.rankings.third }
-                        ].map((tier, i) => (
-                          tier.winners.length > 0 && (
-                            <div key={i} className="space-y-2">
-                              {tier.winners.map((w: any) => (
-                                <div key={w.id} className="flex gap-3 items-center">
-                                  <span className="w-6 text-center text-lg">{tier.rank}</span>
-                                  <div className="flex-1 flex justify-between items-center">
-                                    <span className="font-bold text-sm">{w.name}</span>
-                                    <span className="text-xs text-muted-foreground font-bold">
-                                      <span className="text-accent text-sm mr-0.5">{w.score}</span>
-                                      {award.key === 'mostPerfect' ? 'perf' : award.key === 'mostConsistent' ? 'preds' : 'pts'}
-                                    </span>
-                                  </div>
+                  {configAwards.map((cfg: any) => {
+                    const award = awardsMap.get(cfg.key);
+                    return (
+                      <div key={cfg.key}>
+                        <h3 className="text-primary font-bold mb-3 uppercase text-sm tracking-widest">{cfg.title}</h3>
+                        {!award ? (
+                          <p className="text-xs text-muted-foreground italic pl-4 border-l-2 border-border/30">Not yet achieved</p>
+                        ) : (
+                          <div className="space-y-3 pl-4 border-l-2 border-border/30">
+                            {[
+                              { emoji: '🥇', label: cfg.calculation === 'WINNING_STREAK' || cfg.calculation === 'DOUBLE_JEOPARDY' ? 'First to Achieve' : '1st Place', winners: award.rankings.first },
+                              { emoji: '🥈', label: '2nd Place', winners: award.rankings.second },
+                              { emoji: '🥉', label: '3rd Place', winners: award.rankings.third },
+                            ].map((tier, i) => (
+                              tier.winners.length > 0 && (
+                                <div key={i} className="space-y-1.5">
+                                  {tier.winners.map((w: any) => (
+                                    <div key={w.id} className="flex gap-3 items-center">
+                                      <span className="w-6 text-center text-base">{tier.emoji}</span>
+                                      <div className="flex-1 flex justify-between items-center">
+                                        <span className="font-bold text-sm">{w.name}</span>
+                                        <span className="text-accent text-xs font-bold">
+                                          {cfg.calculation === 'RISING_STAR'   ? `+${w.score} rank jump` :
+                                           cfg.calculation === 'WINNING_STREAK' ? `${w.score}-win streak` :
+                                           cfg.calculation === 'DOUBLE_JEOPARDY' ? '2 back-to-back' :
+                                           cfg.calculation === 'PENALTY_SHOOTER' ? `${w.score} correct` :
+                                           `${w.score} pts`}
+                                        </span>
+                                      </div>
+                                    </div>
+                                  ))}
                                 </div>
-                              ))}
-                            </div>
-                          )
-                        ))}
+                              )
+                            ))}
+                          </div>
+                        )}
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </details>
             );
@@ -349,7 +392,7 @@ ${missingPredictionsMap.reduce((acc, curr) => acc + curr.missingCount, 0)}`;
                     <div>
                       <div className="flex items-center gap-2 mb-1">
                         <span className="px-2 py-0.5 bg-primary/20 text-primary text-[10px] font-bold uppercase rounded">
-                          {match.stage.replace('_', ' ')}
+                          {stageLabel(match.stage)}
                         </span>
                         <span className="text-xs font-bold text-muted-foreground">
                           Kickoff: {new Date(match.startTime).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', weekday: 'short', hour: '2-digit', minute: '2-digit' })}

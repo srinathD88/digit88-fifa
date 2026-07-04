@@ -219,6 +219,8 @@ model Match {
   
   homeScore        Int?
   awayScore        Int?
+  homePenaltyScore Int?
+  awayPenaltyScore Int?
   actualMaxGoals   Int?
   winner           String?
   isExtraTime      Boolean     @default(false)
@@ -250,10 +252,12 @@ model Prediction {
   id                 String   @id @default(cuid())
   userId             String
   matchId            String
-  predictedWinner    String
-  predictedHomeGoals Int
-  predictedAwayGoals Int
-  predictedMaxGoals  Int?
+  predictedWinner            String
+  predictedHomeGoals         Int
+  predictedAwayGoals         Int
+  predictedMaxGoals          Int?
+  predictedPenaltyHomeScore  Int?
+  predictedPenaltyAwayScore  Int?
   pointsAwarded      Int?
   scoredAt           DateTime?
   scoringVersion     String?
@@ -303,6 +307,10 @@ model ScoringConfig {
   exactScorePoints       Int      @default(25)
   maxGoalsPoints         Int      @default(5)
   perfectPredictionBonus Int      @default(20)
+  nearMissClosePoints    Int      @default(10)
+  nearMissFarPoints      Int      @default(5)
+  penaltyShootoutPoints  Int      @default(30)
+  penaltyPerfectBonus    Int      @default(30)
   updatedAt              DateTime @updatedAt
   updatedBy              String?
 }

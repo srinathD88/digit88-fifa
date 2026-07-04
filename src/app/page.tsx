@@ -67,7 +67,7 @@ export default async function Dashboard() {
   }, {} as Record<string, any>);
 
   const now = new Date();
-  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const todayStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
   // Rolling 24-hour window from right now, to catch early morning matches tomorrow
   const cutoffTime = new Date(now.getTime() + 24 * 60 * 60 * 1000);
 
@@ -222,7 +222,7 @@ export default async function Dashboard() {
           {renderMatches(completedMatches, false)}
         </TabsContent>
         <TabsContent value="all">
-          {renderMatches(matches, false)}
+          {renderMatches([...matches].sort((a, b) => new Date(b.startTime).getTime() - new Date(a.startTime).getTime()), false)}
         </TabsContent>
       </Tabs>
     </div>

@@ -4,6 +4,7 @@ import { useState, useMemo } from "react";
 import { format } from "date-fns";
 import { updateMatchManualAction, createMatchManualAction } from "@/actions/admin";
 import { SubmitButton } from "@/components/SubmitButton";
+import { stageLabel, STAGE_OPTIONS } from "@/lib/utils";
 
 export function MatchOperationsCenter({ matches, teams, stadiums, auditLogs }: any) {
   const [filterStatus, setFilterStatus] = useState("ALL");
@@ -64,11 +65,7 @@ export function MatchOperationsCenter({ matches, teams, stadiums, auditLogs }: a
         </select>
         <select value={filterStage} onChange={(e) => setFilterStage(e.target.value)} className="bg-black/40 border border-border/50 rounded p-2 text-sm">
           <option value="ALL">All Stages</option>
-          <option value="GROUP">Group Stage</option>
-          <option value="ROUND_16">Round of 16</option>
-          <option value="QUARTER_FINAL">Quarter Finals</option>
-          <option value="SEMI_FINAL">Semi Finals</option>
-          <option value="FINAL">Final</option>
+          {STAGE_OPTIONS.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
         </select>
         <select value={filterSource} onChange={(e) => setFilterSource(e.target.value)} className="bg-black/40 border border-border/50 rounded p-2 text-sm">
           <option value="ALL">All Sources</option>
@@ -107,7 +104,7 @@ export function MatchOperationsCenter({ matches, teams, stadiums, auditLogs }: a
                     {match.manualOverride && <span className="ml-2 text-[10px] bg-red-500/20 text-red-400 px-1.5 py-0.5 rounded border border-red-500/30 uppercase">Override</span>}
                   </td>
                   <td className="p-4 text-muted-foreground">{stadiums.find((s:any) => s.id === match.stadiumId)?.name || 'Unknown'}</td>
-                  <td className="p-4 text-xs font-semibold">{match.stage.replace('_', ' ')}</td>
+                  <td className="p-4 text-xs font-semibold">{stageLabel(match.stage)}</td>
                   <td className="p-4">
                     <span className={`px-2 py-1 rounded text-[10px] font-bold tracking-wider ${
                       match.status === 'FINISHED' ? 'bg-green-500/20 text-green-400' :
@@ -195,11 +192,7 @@ export function MatchOperationsCenter({ matches, teams, stadiums, auditLogs }: a
                   <div>
                     <label className="text-xs text-muted-foreground block mb-1">Stage</label>
                     <select name="stage" defaultValue={selectedMatch.stage || "GROUP"} className="w-full bg-secondary/30 border border-white/10 rounded p-2 text-sm">
-                      <option value="GROUP">Group Stage</option>
-                      <option value="ROUND_16">Round of 16</option>
-                      <option value="QUARTER_FINAL">Quarter Finals</option>
-                      <option value="SEMI_FINAL">Semi Finals</option>
-                      <option value="FINAL">Final</option>
+                      {STAGE_OPTIONS.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
                     </select>
                   </div>
                   <div className="col-span-2">
@@ -237,6 +230,21 @@ export function MatchOperationsCenter({ matches, teams, stadiums, auditLogs }: a
                     </select>
                   </div>
                 </div>
+              </div>
+
+              <div className="space-y-4">
+                <h3 className="text-sm font-bold text-amber-400 uppercase tracking-wider border-b border-amber-500/20 pb-2">Section 2b: Penalty Shootout</h3>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-xs text-muted-foreground block mb-1">{selectedMatch.homeTeamName} (Home) Penalty Score</label>
+                    <input type="number" name="homePenaltyScore" defaultValue={selectedMatch.homePenaltyScore ?? ''} className="w-full bg-secondary/30 border border-amber-500/20 rounded p-2 text-sm" placeholder="e.g. 4" />
+                  </div>
+                  <div>
+                    <label className="text-xs text-muted-foreground block mb-1">{selectedMatch.awayTeamName} (Away) Penalty Score</label>
+                    <input type="number" name="awayPenaltyScore" defaultValue={selectedMatch.awayPenaltyScore ?? ''} className="w-full bg-secondary/30 border border-amber-500/20 rounded p-2 text-sm" placeholder="e.g. 3" />
+                  </div>
+                </div>
+                <p className="text-xs text-muted-foreground">Leave blank if the match did not go to penalties. Filling both fields automatically marks the match as a penalty shootout.</p>
               </div>
 
               {!selectedMatch.isNew && (

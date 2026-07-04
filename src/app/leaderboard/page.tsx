@@ -83,25 +83,15 @@ export default async function LeaderboardPage() {
                           <span className="text-muted-foreground text-xs flex items-center gap-1.5 mt-0.5 font-medium flex-wrap">
                             {user.flagUrl && <img src={user.flagUrl} alt="" className="w-4 h-3 rounded-sm object-cover" />}
                             {user.team}
-                            {user.perfectCount > 0 && (
-                              <Tooltip>
-                                <TooltipTrigger>
-                                  <span className="ml-1 text-[10px] bg-emerald-500/20 text-emerald-500 border border-emerald-500/20 px-1.5 py-0.5 rounded uppercase tracking-wider font-bold cursor-help shadow-sm">
-                                    🎯 {user.perfectCount}
-                                  </span>
-                                </TooltipTrigger>
-                                <TooltipContent>Perfect Predictions</TooltipContent>
-                              </Tooltip>
-                            )}
                             {(() => {
                               const awards = userAwards[user.userId];
                               if (!awards || awards.length === 0) return null;
                               
-                              const priority = { "overall": 1, "performance": 2, "stage": 3 };
-                              const sortedAwards = [...awards].sort((a, b) => priority[a.type as keyof typeof priority] - priority[b.type as keyof typeof priority]);
-                              
+                              const priority: Record<string, number> = { "overall": 1, "milestone": 2, "streak": 3, "comeback": 4, "performance": 5, "stage": 6 };
+                              const sortedAwards = [...awards].sort((a, b) => (priority[a.type] ?? 9) - (priority[b.type] ?? 9));
+
                               const visibleAwards = sortedAwards;
-                              
+
                               const renderBadge = (award: any, i: number) => {
                                 let bgColor = "bg-primary/20 text-primary border-primary/20";
                                 if (award.badge.includes("🥇") || award.badge.includes("🏆")) bgColor = "bg-amber-500/20 text-amber-500 border-amber-500/20";
@@ -109,7 +99,10 @@ export default async function LeaderboardPage() {
                                 else if (award.badge.includes("🥉")) bgColor = "bg-amber-700/20 text-amber-600 border-amber-700/20";
                                 if (award.type === "performance" && award.badge.includes("🎯")) bgColor = "bg-emerald-500/20 text-emerald-500 border-emerald-500/20";
                                 if (award.type === "performance" && award.badge.includes("📈")) bgColor = "bg-blue-500/20 text-blue-500 border-blue-500/20";
-                                if (award.type === "stage") bgColor = "bg-purple-500/20 text-purple-400 border-purple-500/20";
+                                if (award.type === "stage")     bgColor = "bg-purple-500/20 text-purple-400 border-purple-500/20";
+                                if (award.type === "milestone") bgColor = "bg-amber-500/20 text-amber-400 border-amber-500/20";
+                                if (award.type === "streak")    bgColor = "bg-emerald-500/20 text-emerald-400 border-emerald-500/20";
+                                if (award.type === "comeback")  bgColor = "bg-sky-500/20 text-sky-400 border-sky-500/20";
                                 
                                 return (
                                   <Tooltip key={i}>
@@ -165,7 +158,7 @@ export default async function LeaderboardPage() {
                 <tr className="border-b border-border/40 text-left text-sm text-muted-foreground shadow-sm">
                   <th className="p-4 font-semibold">Rank</th>
                   <th className="p-4 font-semibold">Team</th>
-                  <th className="p-4 font-semibold text-right">Total Points</th>
+                  <th className="p-4 font-semibold text-right">Avg Points</th>
                 </tr>
               </thead>
               <tbody>
@@ -190,11 +183,13 @@ export default async function LeaderboardPage() {
                              {team.name}
                              {isMyTeam && <span className="text-[10px] bg-accent/20 text-accent px-1.5 py-0.5 rounded uppercase tracking-wider ml-1 flex items-center gap-1 font-bold">👥 Your Team</span>}
                            </span>
-                           <span className="text-muted-foreground text-xs font-normal mt-0.5">{(team as any).usersCount || 0} Members</span>
+                           <span className="text-muted-foreground text-xs font-normal mt-0.5">
+                             {(team as any).usersCount || 0} members · {team.totalPoints} pts total
+                           </span>
                         </div>
                       </td>
                       <td className="p-4 font-black text-right text-xl whitespace-nowrap">
-                        {team.totalPoints} <span className="text-sm font-bold text-muted-foreground">pts</span>
+                        {Math.round((team as any).avgPoints as number)} <span className="text-sm font-bold text-muted-foreground">pts</span>
                       </td>
                     </tr>
                   );

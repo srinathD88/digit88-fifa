@@ -157,16 +157,22 @@ export async function updateScoringConfigAction(formData: FormData) {
   const exactScorePoints = parseInt(formData.get("exactScorePoints") as string);
   const maxGoalsPoints = parseInt(formData.get("maxGoalsPoints") as string);
   const perfectPredictionBonus = parseInt(formData.get("perfectPredictionBonus") as string);
+  const nearMissClosePoints = parseInt(formData.get("nearMissClosePoints") as string);
+  const nearMissFarPoints = parseInt(formData.get("nearMissFarPoints") as string);
+  const penaltyShootoutPoints = parseInt(formData.get("penaltyShootoutPoints") as string);
+  const penaltyPerfectBonus = parseInt(formData.get("penaltyPerfectBonus") as string);
 
   await prisma.scoringConfig.upsert({
     where: { id: 1 },
     update: {
       winnerPoints, exactScorePoints, maxGoalsPoints, perfectPredictionBonus,
+      nearMissClosePoints, nearMissFarPoints, penaltyShootoutPoints, penaltyPerfectBonus,
       updatedBy: admin.id
     },
     create: {
       id: 1,
       winnerPoints, exactScorePoints, maxGoalsPoints, perfectPredictionBonus,
+      nearMissClosePoints, nearMissFarPoints, penaltyShootoutPoints, penaltyPerfectBonus,
       updatedBy: admin.id
     }
   });
@@ -177,7 +183,7 @@ export async function updateScoringConfigAction(formData: FormData) {
       userId: admin.id,
       entityType: "SCORING_CONFIG",
       entityId: "1",
-      metadata: { winnerPoints, exactScorePoints, maxGoalsPoints, perfectPredictionBonus }
+      metadata: { winnerPoints, exactScorePoints, maxGoalsPoints, perfectPredictionBonus, nearMissClosePoints, nearMissFarPoints, penaltyShootoutPoints, penaltyPerfectBonus }
     }
   });
 
@@ -243,7 +249,7 @@ export async function syncFixturesAction() {
   revalidatePath("/");
 }
 
-export async function recalculateAllScoresAction() {
+export async function recalculateAllScoresAction(force: boolean = false) {
   const admin = await verifyAdmin();
 
   const job = await prisma.syncJob.create({
@@ -251,8 +257,10 @@ export async function recalculateAllScoresAction() {
   });
 
   try {
+    // Without force, only re-score matches that haven't been scored yet.
+    // This protects already-calculated scores from being overwritten accidentally.
     const finishedMatches = await prisma.match.findMany({
-      where: { status: "FINISHED" },
+      where: { status: "FINISHED", ...(force ? {} : { pointsCalculated: false }) },
       select: { id: true }
     });
 
@@ -264,8 +272,7 @@ export async function recalculateAllScoresAction() {
       });
     }
 
-    // Process them immediately instead of waiting for the cron job
-    await processPendingMatches();
+    await processPendingMatches(force);
 
     await prisma.syncJob.update({
       where: { id: job.id },
@@ -294,12 +301,17 @@ export async function updateMatchManualAction(formData: FormData) {
   const homeScoreStr = formData.get("homeScore") as string;
   const awayScoreStr = formData.get("awayScore") as string;
   const actualMaxGoalsStr = formData.get("actualMaxGoals") as string;
+  const homePenaltyScoreStr = formData.get("homePenaltyScore") as string;
+  const awayPenaltyScoreStr = formData.get("awayPenaltyScore") as string;
   const winner = formData.get("winner") as string;
   const manualOverride = formData.get("manualOverride") === "true";
 
   const homeScore = homeScoreStr ? parseInt(homeScoreStr) : null;
   const awayScore = awayScoreStr ? parseInt(awayScoreStr) : null;
   const actualMaxGoals = actualMaxGoalsStr ? parseInt(actualMaxGoalsStr) : null;
+  const homePenaltyScore = homePenaltyScoreStr ? parseInt(homePenaltyScoreStr) : null;
+  const awayPenaltyScore = awayPenaltyScoreStr ? parseInt(awayPenaltyScoreStr) : null;
+  const isPenaltyShootout = homePenaltyScore !== null && awayPenaltyScore !== null;
 
   const previousMatch = await prisma.match.findUnique({ where: { id: matchId } });
   
@@ -309,11 +321,12 @@ export async function updateMatchManualAction(formData: FormData) {
   
   const updatedMatch = await prisma.match.update({
     where: { id: matchId },
-    data: { 
-      status, stage, startTime, 
-      homeScore, awayScore, actualMaxGoals, 
+    data: {
+      status, stage, startTime,
+      homeScore, awayScore, actualMaxGoals,
+      homePenaltyScore, awayPenaltyScore, isPenaltyShootout,
       winner: finalWinner || null,
-      manualOverride 
+      manualOverride
     }
   });
 

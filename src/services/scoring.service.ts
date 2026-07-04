@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/prisma"
 
-export async function processPendingMatches() {
+export async function processPendingMatches(force: boolean = false) {
   const pending = await prisma.matchProcessing.findMany({
     where: { status: "PENDING" },
     include: { match: true }
@@ -8,18 +8,18 @@ export async function processPendingMatches() {
 
   let processedCount = 0;
   for (const job of pending) {
-    await calculateScoresForMatch(job.matchId);
+    await calculateScoresForMatch(job.matchId, force);
     processedCount++;
   }
   return processedCount;
 }
 
-export async function calculateScoresForMatch(matchId: string) {
+export async function calculateScoresForMatch(matchId: string, force: boolean = false) {
   // 1. Transition to PROCESSING
   await prisma.matchProcessing.update({
     where: { matchId },
-    data: { 
-      status: "PROCESSING", 
+    data: {
+      status: "PROCESSING",
       startedAt: new Date(),
       attempts: { increment: 1 }
     }
@@ -31,6 +31,16 @@ export async function calculateScoresForMatch(matchId: string) {
       throw new Error("Match not found or not finished");
     }
 
+    // Hard guard: never overwrite existing scores unless force=true is explicitly passed.
+    // This prevents any accidental re-score from changing user points that are already stored.
+    if (match.pointsCalculated && !force) {
+      await prisma.matchProcessing.update({
+        where: { matchId },
+        data: { status: "COMPLETED", completedAt: new Date(), lastError: null }
+      });
+      return;
+    }
+
     // 2. Fetch Scoring Configs
     let configs = await prisma.scoringConfig.findFirst({ where: { id: 1 } });
     if (!configs) {
@@ -40,6 +50,10 @@ export async function calculateScoresForMatch(matchId: string) {
         exactScorePoints: 25,
         maxGoalsPoints: 5,
         perfectPredictionBonus: 20,
+        nearMissClosePoints: 10,
+        nearMissFarPoints: 5,
+        penaltyShootoutPoints: 30,
+        penaltyPerfectBonus: 30,
         updatedAt: new Date(),
         updatedBy: null
       };
@@ -49,6 +63,10 @@ export async function calculateScoresForMatch(matchId: string) {
     const EXACT_SCORE_PTS = configs.exactScorePoints;
     const MAX_GOALS_PTS = configs.maxGoalsPoints;
     const PERFECT_BONUS = configs.perfectPredictionBonus;
+    const NEAR_MISS_CLOSE_PTS = configs.nearMissClosePoints;
+    const NEAR_MISS_FAR_PTS = configs.nearMissFarPoints;
+    const PENALTY_EXACT_PTS = configs.penaltyShootoutPoints;
+    const PENALTY_PERFECT_BONUS = configs.penaltyPerfectBonus;
     
     // We stamp this version to track scoring changes
     const scoringVersion = `v_${configs.updatedAt.getTime()}`;
@@ -90,6 +108,19 @@ export async function calculateScoresForMatch(matchId: string) {
          }
       }
 
+      // Near Miss: only applies to matches starting on or after 4 Jul 2026 12:00 PM IST (06:30 UTC)
+      const NEAR_MISS_EFFECTIVE_DATE = new Date("2026-07-04T06:30:00.000Z");
+      if (match.startTime >= NEAR_MISS_EFFECTIVE_DATE) {
+        if (!(pred.predictedHomeGoals === matchHome && pred.predictedAwayGoals === matchAway)) {
+          const homeDiff = Math.abs(pred.predictedHomeGoals - matchHome);
+          const awayDiff = Math.abs(pred.predictedAwayGoals - matchAway);
+          if ((homeDiff === 0 && awayDiff > 0) || (awayDiff === 0 && homeDiff > 0)) {
+            const otherDiff = Math.max(homeDiff, awayDiff);
+            points += otherDiff === 1 ? NEAR_MISS_CLOSE_PTS : NEAR_MISS_FAR_PTS;
+          }
+        }
+      }
+
       // Rule 3: Max Goals
       if (actualMaxGoals !== null && pred.predictedMaxGoals !== null) {
         if (pred.predictedMaxGoals === actualMaxGoals) {
@@ -101,9 +132,33 @@ export async function calculateScoresForMatch(matchId: string) {
         isPerfect = false; // Can't be perfect if max goals wasn't evaluated
       }
 
-      // Rule 4: Perfect Bonus
+      // Penalty Shootout Scoring — only for matches on or after 4 Jul 2026 12:00 PM IST (06:30 UTC)
+      const PENALTY_EFFECTIVE_DATE = new Date("2026-07-04T06:30:00.000Z");
+      let isPenaltyCorrect = false;
+      if (match.isPenaltyShootout && match.startTime >= PENALTY_EFFECTIVE_DATE) {
+        if (match.homePenaltyScore !== null && match.awayPenaltyScore !== null) {
+          if (
+            pred.predictedPenaltyHomeScore !== null &&
+            pred.predictedPenaltyAwayScore !== null &&
+            pred.predictedPenaltyHomeScore === match.homePenaltyScore &&
+            pred.predictedPenaltyAwayScore === match.awayPenaltyScore
+          ) {
+            isPenaltyCorrect = true;
+            points += PENALTY_EXACT_PTS;
+          } else {
+            isPerfect = false;
+          }
+        }
+      }
+
+      // Rule 4: Perfect Bonus (requires all criteria correct, including penalty on penalty games)
       if (isPerfect) {
         points += PERFECT_BONUS;
+      }
+
+      // Penalty Perfect Bonus — additional reward when everything including penalty is correct
+      if (isPerfect && isPenaltyCorrect) {
+        points += PENALTY_PERFECT_BONUS;
       }
 
       // Update Prediction with points, timestamp, and version

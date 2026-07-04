@@ -1,17 +1,25 @@
 import { prisma } from "@/lib/prisma";
 import { Card, CardContent } from "@/components/ui/card";
 import { SubmitButton } from "@/components/SubmitButton";
-import { updateScoringConfigAction, recalculateAllScoresAction } from "@/actions/admin";
+import { RecalculateButton } from "@/components/RecalculateButton";
+import { updateScoringConfigAction } from "@/actions/admin";
 
 export default async function ScoringPage() {
-  const config = await prisma.scoringConfig.findUnique({ where: { id: 1 } });
+  const [config, unscoredCount] = await Promise.all([
+    prisma.scoringConfig.findUnique({ where: { id: 1 } }),
+    prisma.match.count({ where: { status: "FINISHED", pointsCalculated: false } }),
+  ]);
   
   // Default values if no config exists yet
   const c = config || {
     winnerPoints: 10,
     exactScorePoints: 25,
     maxGoalsPoints: 5,
-    perfectPredictionBonus: 20
+    perfectPredictionBonus: 20,
+    nearMissClosePoints: 10,
+    nearMissFarPoints: 5,
+    penaltyShootoutPoints: 30,
+    penaltyPerfectBonus: 30,
   };
 
   const fields = [
@@ -19,6 +27,10 @@ export default async function ScoringPage() {
     { name: "exactScorePoints", label: "Exact Score", value: c.exactScorePoints },
     { name: "maxGoalsPoints", label: "Max Goals Match", value: c.maxGoalsPoints },
     { name: "perfectPredictionBonus", label: "Perfect Prediction Bonus", value: c.perfectPredictionBonus },
+    { name: "nearMissClosePoints", label: "Near Miss (1 Goal Away)", value: c.nearMissClosePoints },
+    { name: "nearMissFarPoints", label: "Near Miss (2+ Goals Away)", value: c.nearMissFarPoints },
+    { name: "penaltyShootoutPoints", label: "Penalty Shootout (Exact Score)", value: c.penaltyShootoutPoints },
+    { name: "penaltyPerfectBonus", label: "Penalty Perfect Bonus", value: c.penaltyPerfectBonus },
   ];
 
   return (
@@ -29,11 +41,7 @@ export default async function ScoringPage() {
           <p className="text-muted-foreground">Adjust points awarded for various prediction outcomes.</p>
         </div>
         
-        <form action={recalculateAllScoresAction}>
-          <SubmitButton type="submit" variant="outline" className="font-bold border-accent text-accent hover:bg-accent/10" loadingText="Recalculating...">
-            🔄 Recalculate All Scores
-          </SubmitButton>
-        </form>
+        <RecalculateButton unscoredCount={unscoredCount} />
       </div>
 
       <Card className="glass-card max-w-3xl">

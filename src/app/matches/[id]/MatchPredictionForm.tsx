@@ -7,15 +7,23 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { submitPrediction } from "@/actions/prediction";
 import { SubmitButton } from "@/components/SubmitButton";
+import { stageLabel } from "@/lib/utils";
 import Link from "next/link";
 
 export function MatchPredictionForm({ match, prediction, isLocked }: any) {
   const [homeGoals, setHomeGoals] = useState<string>(prediction ? prediction.predictedHomeGoals.toString() : "");
   const [awayGoals, setAwayGoals] = useState<string>(prediction ? prediction.predictedAwayGoals.toString() : "");
-  const [maxGoals, setMaxGoals] = useState<string>(prediction ? prediction.predictedMaxGoals.toString() : "");
+  const [maxGoals, setMaxGoals] = useState<string>(prediction ? prediction.predictedMaxGoals?.toString() ?? "" : "");
+  const [penaltyHomeGoals, setPenaltyHomeGoals] = useState<string>(
+    prediction?.predictedPenaltyHomeScore != null ? prediction.predictedPenaltyHomeScore.toString() : ""
+  );
+  const [penaltyAwayGoals, setPenaltyAwayGoals] = useState<string>(
+    prediction?.predictedPenaltyAwayScore != null ? prediction.predictedPenaltyAwayScore.toString() : ""
+  );
 
   const hG = parseInt(homeGoals) || 0;
   const aG = parseInt(awayGoals) || 0;
+  const isDraw = homeGoals !== "" && awayGoals !== "" && hG === aG;
 
   // Derived logic
   let winner = "DRAW";
@@ -75,7 +83,7 @@ export function MatchPredictionForm({ match, prediction, isLocked }: any) {
               <span>⏰</span> {new Date(match.startTime).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', weekday: 'short', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })} IST
             </div>
             <div className="flex items-center gap-2 px-2 py-1 bg-primary/20 text-primary rounded text-xs font-bold uppercase">
-              {match.stage.replace('_', ' ')}
+              {stageLabel(match.stage)}
             </div>
           </div>
         </div>
@@ -149,9 +157,49 @@ export function MatchPredictionForm({ match, prediction, isLocked }: any) {
               </div>
             </div>
 
-            {/* Section 3: Read-only Derived */}
+            {/* Section 3: Penalty Shootout — only visible when predicting a draw */}
+            {isDraw && (
+              <div className="space-y-4">
+                <h3 className="text-xl font-bold border-b border-amber-500/50 pb-2 text-amber-400">Section 3: Penalty Shootout Prediction</h3>
+                <div className="bg-amber-500/5 p-6 rounded-2xl border border-amber-500/20 space-y-6">
+                  <p className="text-sm text-amber-400/80 text-center font-medium">
+                    You predicted a draw — predict the penalty shootout score now.
+                  </p>
+                  <div className="flex items-center justify-between max-w-md mx-auto">
+                    <Label className="text-2xl font-bold flex-1">{match.homeTeamName}</Label>
+                    <Input
+                      name="penaltyHomeGoals"
+                      type="number"
+                      min="0"
+                      max="20"
+                      disabled={isLocked}
+                      value={penaltyHomeGoals}
+                      onChange={(e) => setPenaltyHomeGoals(e.target.value)}
+                      placeholder="0"
+                      className="w-24 text-center text-3xl h-16 font-black bg-black/40 border-2 border-amber-500/30 focus-visible:ring-amber-500 focus-visible:border-amber-500 shadow-inner rounded-xl placeholder:text-muted-foreground/30"
+                    />
+                  </div>
+                  <div className="flex items-center justify-between max-w-md mx-auto">
+                    <Label className="text-2xl font-bold flex-1">{match.awayTeamName}</Label>
+                    <Input
+                      name="penaltyAwayGoals"
+                      type="number"
+                      min="0"
+                      max="20"
+                      disabled={isLocked}
+                      value={penaltyAwayGoals}
+                      onChange={(e) => setPenaltyAwayGoals(e.target.value)}
+                      placeholder="0"
+                      className="w-24 text-center text-3xl h-16 font-black bg-black/40 border-2 border-amber-500/30 focus-visible:ring-amber-500 focus-visible:border-amber-500 shadow-inner rounded-xl placeholder:text-muted-foreground/30"
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Section 4: Read-only Derived */}
             <div className="space-y-4">
-              <h3 className="text-xl font-bold border-b border-border/50 pb-2 text-primary">Section 3: Derived Prediction</h3>
+              <h3 className="text-xl font-bold border-b border-border/50 pb-2 text-primary">Section 4: Derived Prediction</h3>
               <div className="bg-primary/5 p-6 rounded-2xl border border-primary/20 space-y-4">
                 <div className="grid grid-cols-3 gap-4 text-center">
                   <div className="bg-black/40 p-4 rounded-xl border border-white/5">

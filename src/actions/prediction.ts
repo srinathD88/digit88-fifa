@@ -32,10 +32,16 @@ export async function submitPrediction(formData: FormData) {
 
   const { matchId, homeGoals, awayGoals, maxGoals } = result.data;
 
+  // Penalty goals — only present in formData when user predicted a draw
+  const rawPenaltyHome = formData.get("penaltyHomeGoals");
+  const rawPenaltyAway = formData.get("penaltyAwayGoals");
+  const predictedPenaltyHomeScore = rawPenaltyHome !== null && rawPenaltyHome !== "" ? parseInt(rawPenaltyHome as string) : null;
+  const predictedPenaltyAwayScore = rawPenaltyAway !== null && rawPenaltyAway !== "" ? parseInt(rawPenaltyAway as string) : null;
+
   // Verify match is not locked
   const match = await prisma.match.findUnique({ where: { id: matchId } });
   if (!match) throw new Error("Match not found");
-  
+
   if (new Date() >= match.startTime || match.status !== 'SCHEDULED') {
     throw new Error("Match predictions are locked.");
   }
@@ -54,6 +60,8 @@ export async function submitPrediction(formData: FormData) {
       predictedAwayGoals: awayGoals,
       predictedMaxGoals: maxGoals,
       predictedWinner,
+      predictedPenaltyHomeScore,
+      predictedPenaltyAwayScore,
     },
     create: {
       userId: session.user.id,
@@ -62,6 +70,8 @@ export async function submitPrediction(formData: FormData) {
       predictedAwayGoals: awayGoals,
       predictedMaxGoals: maxGoals,
       predictedWinner,
+      predictedPenaltyHomeScore,
+      predictedPenaltyAwayScore,
     }
   });
 
