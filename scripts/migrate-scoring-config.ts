@@ -1,6 +1,10 @@
 import { PrismaClient } from "@prisma/client";
+import { Pool } from "pg";
+import { PrismaPg } from "@prisma/adapter-pg";
 
-const prisma = new PrismaClient();
+const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+const adapter = new PrismaPg(pool);
+const prisma = new PrismaClient({ adapter });
 
 async function main() {
   const existing = await prisma.scoringConfig.findUnique({ where: { id: 1 } });
@@ -12,13 +16,15 @@ async function main() {
 
   const patch: Record<string, number> = {};
 
-  if ((existing as any).nearMissClosePoints === 0)   patch.nearMissClosePoints   = 10;
-  if ((existing as any).nearMissFarPoints   === 0)   patch.nearMissFarPoints     = 5;
+  if ((existing as any).nearMissClosePoints   === 0) patch.nearMissClosePoints   = 10;
+  if ((existing as any).nearMissFarPoints     === 0) patch.nearMissFarPoints     = 5;
   if ((existing as any).penaltyShootoutPoints === 0) patch.penaltyShootoutPoints = 30;
-  if ((existing as any).penaltyPerfectBonus === 0)   patch.penaltyPerfectBonus   = 30;
+  if ((existing as any).penaltyPerfectBonus   === 0) patch.penaltyPerfectBonus   = 30;
 
   if (Object.keys(patch).length === 0) {
-    console.log("ScoringConfig already has non-zero values — no patch needed.");
+    console.log("ScoringConfig already has correct values — no patch needed.");
+    const c = existing as any;
+    console.log(`  nearMissClose=${c.nearMissClosePoints}, nearMissFar=${c.nearMissFarPoints}, penalty=${c.penaltyShootoutPoints}, penaltyPerfect=${c.penaltyPerfectBonus}`);
     return;
   }
 
