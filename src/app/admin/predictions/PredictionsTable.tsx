@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import React, { useState } from "react";
 
 export function PredictionsTable({ predictions }: { predictions: any[] }) {
   const [userFilter, setUserFilter]   = useState("ALL");
@@ -131,7 +131,7 @@ export function PredictionsTable({ predictions }: { predictions: any[] }) {
               const m = p.match;
               const bd = getBreakdown(p);
 
-              const statusBadge: Record<string, JSX.Element> = {
+              const statusBadge: Record<string, React.ReactElement> = {
                 PENDING: <span className="px-2 py-1 bg-yellow-500/20 text-yellow-500 rounded text-xs font-bold border border-yellow-500/30 inline-flex items-center gap-1.5 whitespace-nowrap">🟡 Pending</span>,
                 LOCKED:  <span className="px-2 py-1 bg-blue-500/20 text-blue-400 rounded text-xs font-bold border border-blue-500/30 inline-flex items-center gap-1.5 whitespace-nowrap">🔵 Locked</span>,
                 SCORED:  <span className="px-2 py-1 bg-green-500/20 text-green-400 rounded text-xs font-bold border border-green-500/30 inline-flex items-center gap-1.5 whitespace-nowrap">🟢 Scored</span>,
