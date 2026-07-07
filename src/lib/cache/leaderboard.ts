@@ -27,11 +27,15 @@ export const getTeamLeaderboard = unstable_cache(
   }
 );
 
+// Version bumped when the shape of award data changes (new fields on winner objects).
+// This forces a cache miss on the next deploy so stale filesystem cache doesn't serve old shapes.
+const AWARDS_CACHE_VERSION = "v3";
+
 export const getTournamentAwards = unstable_cache(
   async () => {
     return _getTournamentAwards();
   },
-  ["tournament-awards"],
+  [`tournament-awards-${AWARDS_CACHE_VERSION}`],
   {
     revalidate: 60,
     tags: ["leaderboard"],
