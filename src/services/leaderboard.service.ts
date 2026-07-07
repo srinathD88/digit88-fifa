@@ -88,7 +88,9 @@ export const AWARD_CONFIG = [
   { key: "double_jeopardy",  title: "Double Jeopardy",                type: "streak",    badgePrefix: "🎰",   calculation: "DOUBLE_JEOPARDY" },
 
   // Comeback & Progression
-  { key: "rising_star",      title: "Rising Star",                    type: "comeback",  badgePrefix: "⭐",   calculation: "RISING_STAR" },
+  { key: "rising_star_r16", title: "Rising Star — R32→R16", type: "comeback", badgePrefix: "⭐", calculation: "RISING_STAR_R16" },
+  { key: "rising_star_qf",  title: "Rising Star — R16→R8",  type: "comeback", badgePrefix: "⭐", calculation: "RISING_STAR_QF" },
+  { key: "rising_star_sf",  title: "Rising Star — R8→R4",   type: "comeback", badgePrefix: "⭐", calculation: "RISING_STAR_SF" },
 
   // Stage Winners
   { key: "stage_GROUP",          title: "Group Stage",    type: "stage", badgePrefix: "G",   calculation: "STAGE_POINTS", stage: "GROUP" },
@@ -163,6 +165,9 @@ export async function _getTournamentAwards() {
     let currentStreak = 0;
     let streak5CompletedAt: Date | null = null;
     let streak10CompletedAt: Date | null = null;
+    const streakWindow: { home: string; away: string }[] = [];
+    let streak5Matches: { home: string; away: string }[] = [];
+    let streak10Matches: { home: string; away: string }[] = [];
 
     for (const p of sortedPreds) {
       const match = p.match;
@@ -177,18 +182,26 @@ export async function _getTournamentAwards() {
 
       if (predictedWinner === match.winner) {
         currentStreak++;
-        if (currentStreak >= 5 && !streak5CompletedAt)
+        streakWindow.push({ home: match.homeTeamName, away: match.awayTeamName });
+        if (currentStreak >= 5 && !streak5CompletedAt) {
           streak5CompletedAt = new Date(match.startTime);
-        if (currentStreak >= 10 && !streak10CompletedAt)
+          streak5Matches = streakWindow.slice(-5);
+        }
+        if (currentStreak >= 10 && !streak10CompletedAt) {
           streak10CompletedAt = new Date(match.startTime);
+          streak10Matches = streakWindow.slice(-10);
+        }
       } else {
         currentStreak = 0;
+        streakWindow.length = 0;
       }
     }
 
     // --- Double Jeopardy: 2 consecutive perfect predictions (exact score + exact max goals) ---
     let doubleJeopardyCompletedAt: Date | null = null;
+    let doubleJeopardyMatches: { home: string; away: string }[] = [];
     let lastWasPerfect = false;
+    let prevPerfectMatch: { home: string; away: string } | null = null;
 
     for (const p of sortedPreds) {
       const match = p.match;
@@ -201,8 +214,11 @@ export async function _getTournamentAwards() {
         p.predictedMaxGoals === match.actualMaxGoals;
       const isPerfect = exactScore && exactMaxGoals;
 
-      if (isPerfect && lastWasPerfect && !doubleJeopardyCompletedAt)
+      if (isPerfect && lastWasPerfect && !doubleJeopardyCompletedAt) {
         doubleJeopardyCompletedAt = new Date(match.startTime);
+        doubleJeopardyMatches = [prevPerfectMatch!, { home: match.homeTeamName, away: match.awayTeamName }];
+      }
+      prevPerfectMatch = isPerfect ? { home: match.homeTeamName, away: match.awayTeamName } : null;
       lastWasPerfect = isPerfect;
     }
 
@@ -230,7 +246,10 @@ export async function _getTournamentAwards() {
       teamId: u.teamId,
       streak5CompletedAt,
       streak10CompletedAt,
+      streak5Matches,
+      streak10Matches,
       doubleJeopardyCompletedAt,
+      doubleJeopardyMatches,
       penaltyCorrectCount,
     };
   });
@@ -265,21 +284,19 @@ export async function _getTournamentAwards() {
     computeRankSnapshot(['GROUP', 'ROUND_OF_32', 'ROUND_OF_16', 'QUARTER_FINAL', 'SEMI_FINAL']),
   ];
 
-  const risingStarCandidates = users
-    .map(u => {
-      let bestJump = 0;
-      for (let i = 1; i < snapshots.length; i++) {
-        const before = snapshots[i - 1].get(u.id) ?? (users.length + 1);
-        const after  = snapshots[i].get(u.id) ?? (users.length + 1);
-        const jump = before - after; // positive = moved up in rank
-        if (jump > bestJump) bestJump = jump;
-      }
-      return { ...u, bestRankJump: bestJump };
-    })
-    .filter(u => u.bestRankJump > 0)
-    .sort((a, b) => b.bestRankJump - a.bestRankJump);
+  const findRisingStarForTransition = (before: Map<string, number>, after: Map<string, number>) =>
+    users
+      .map((u: any) => {
+        const rankBefore = before.get(u.id) ?? (users.length + 1);
+        const rankAfter  = after.get(u.id)  ?? (users.length + 1);
+        return { ...u, bestRankJump: rankBefore - rankAfter, rankBefore, rankAfter };
+      })
+      .filter((u: any) => u.bestRankJump > 0)
+      .sort((a: any, b: any) => b.bestRankJump - a.bestRankJump)[0] ?? null;
 
-  const risingStarWinner = risingStarCandidates[0] ?? null;
+  const risingStarR16 = findRisingStarForTransition(snapshots[0], snapshots[1]);
+  const risingStarQF  = findRisingStarForTransition(snapshots[1], snapshots[2]);
+  const risingStarSF  = findRisingStarForTransition(snapshots[2], snapshots[3]);
 
   // --- Top Winning Team ---
   const teamLeaderboard = await getTeamLeaderboard();
@@ -410,11 +427,17 @@ export async function _getTournamentAwards() {
       return;
     }
 
-    // --- Rising Star ---
-    if (award.calculation === "RISING_STAR") {
-      if (!risingStarWinner) return;
-      awardsList.push({ ...award, rankings: { first: [{ ...risingStarWinner, score: risingStarWinner.bestRankJump }], second: [], third: [] } });
-      addUserAward(risingStarWinner.id, { category: award.title, type: award.type, rank: 1, badge: award.badgePrefix, title: "Rising Star" });
+    // --- Rising Star (one per transition) ---
+    const risingStarMap: Record<string, any> = {
+      RISING_STAR_R16: risingStarR16,
+      RISING_STAR_QF:  risingStarQF,
+      RISING_STAR_SF:  risingStarSF,
+    };
+    if (award.calculation in risingStarMap) {
+      const winner = risingStarMap[award.calculation];
+      if (!winner) return;
+      awardsList.push({ ...award, rankings: { first: [{ ...winner, score: winner.bestRankJump }], second: [], third: [] } });
+      addUserAward(winner.id, { category: award.title, type: award.type, rank: 1, badge: award.badgePrefix, title: award.title });
       return;
     }
   });

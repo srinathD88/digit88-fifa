@@ -238,9 +238,9 @@ export class WorldCup26Provider implements MatchProvider {
 
         const homeScore = game.home_score ? parseInt(game.home_score) : null;
         const awayScore = game.away_score ? parseInt(game.away_score) : null;
-        const homePenaltyScore = game.home_penalty_score ? parseInt(game.home_penalty_score) : null;
-        const awayPenaltyScore = game.away_penalty_score ? parseInt(game.away_penalty_score) : null;
-        const isPenaltyShootout = homePenaltyScore !== null && awayPenaltyScore !== null;
+        const homePenaltyScore = game.home_penalty_score != null && game.home_penalty_score !== '' ? parseInt(game.home_penalty_score) : null;
+        const awayPenaltyScore = game.away_penalty_score != null && game.away_penalty_score !== '' ? parseInt(game.away_penalty_score) : null;
+        const isPenaltyShootout = homePenaltyScore !== null && awayPenaltyScore !== null && (homePenaltyScore > 0 || awayPenaltyScore > 0);
         const homeTeamName = game.home_team_name_en || game.home_team_label || "TBD";
         const awayTeamName = game.away_team_name_en || game.away_team_label || "TBD";
 

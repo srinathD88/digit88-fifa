@@ -264,7 +264,7 @@ ${missingPredictionsMap.reduce((acc, curr) => acc + curr.missingCount, 0)}`;
             const awardsMap = new Map(awardsList.map((a: any) => [a.key, a]));
 
             const getScoreLabel = (calc: string) => {
-              if (calc === 'RISING_STAR')    return 'rank jump';
+              if (calc?.startsWith('RISING_STAR')) return 'rank jump';
               if (calc === 'PENALTY_SHOOTER') return 'correct';
               if (calc === 'WINNING_STREAK') return '-win streak';
               return 'pts';
@@ -299,7 +299,7 @@ ${missingPredictionsMap.reduce((acc, curr) => acc + curr.missingCount, 0)}`;
                                       <div className="flex-1 flex justify-between items-center">
                                         <span className="font-bold text-sm">{w.name}</span>
                                         <span className="text-accent text-xs font-bold">
-                                          {cfg.calculation === 'RISING_STAR'   ? `+${w.score} rank jump` :
+                                          {cfg.calculation?.startsWith('RISING_STAR') ? `#${w.rankBefore} → #${w.rankAfter} (+${w.score})` :
                                            cfg.calculation === 'WINNING_STREAK' ? `${w.score}-win streak` :
                                            cfg.calculation === 'DOUBLE_JEOPARDY' ? '2 back-to-back' :
                                            cfg.calculation === 'PENALTY_SHOOTER' ? `${w.score} correct` :

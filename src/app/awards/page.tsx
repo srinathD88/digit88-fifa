@@ -18,12 +18,20 @@ export default async function AwardsPage() {
   const stageAwards     = awardsList.filter(a => a.type === "stage");
 
   const getScoreDisplay = (award: any, w: any): string => {
-    if (award.calculation === "RISING_STAR")    return `+${w.score} rank jump`;
+    if (award.calculation?.startsWith("RISING_STAR")) return `#${w.rankBefore} → #${w.rankAfter} (+${w.score})`;
     if (award.calculation === "PENALTY_SHOOTER") return `${w.score} correct`;
     if (award.calculation === "WINNING_STREAK") return `${w.score}-win streak`;
     if (award.calculation === "DOUBLE_JEOPARDY") return "2 back-to-back";
     if (award.calculation === "ROUND_TOP")       return `${w.score} pts`;
     return `${w.score} pts`;
+  };
+
+  const getMatchDetail = (award: any, w: any): { home: string; away: string }[] | null => {
+    if (award.calculation === "WINNING_STREAK")
+      return award.threshold === 5 ? (w.streak5Matches ?? []) : (w.streak10Matches ?? []);
+    if (award.calculation === "DOUBLE_JEOPARDY")
+      return w.doubleJeopardyMatches ?? [];
+    return null;
   };
 
   const PODIUM_LABELS: Record<number, { label: string; emoji: string }> = {
@@ -53,12 +61,24 @@ export default async function AwardsPage() {
                   <span className="text-xs font-bold text-muted-foreground uppercase tracking-widest">{tier.label}</span>
                 </div>
                 <div className="space-y-3 border-l-2 border-primary/20 pl-4 ml-2">
-                  {tier.winners.map((w: any) => (
-                    <div key={w.id} className="flex flex-col">
-                      <span className="font-black text-xl">{w.name}</span>
-                      <span className="text-sm font-bold text-accent">{getScoreDisplay(award, w)}</span>
-                    </div>
-                  ))}
+                  {tier.winners.map((w: any) => {
+                    const matches = getMatchDetail(award, w);
+                    return (
+                      <div key={w.id} className="flex flex-col gap-1">
+                        <span className="font-black text-xl">{w.name}</span>
+                        <span className="text-sm font-bold text-accent">{getScoreDisplay(award, w)}</span>
+                        {matches && matches.length > 0 && (
+                          <div className="flex flex-wrap gap-1 mt-0.5">
+                            {matches.map((m, i) => (
+                              <span key={i} className="text-[10px] bg-white/5 border border-white/10 rounded px-1.5 py-0.5 text-muted-foreground font-medium">
+                                {m.home} vs {m.away}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             )

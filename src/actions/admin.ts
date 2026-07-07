@@ -309,9 +309,9 @@ export async function updateMatchManualAction(formData: FormData) {
   const homeScore = homeScoreStr ? parseInt(homeScoreStr) : null;
   const awayScore = awayScoreStr ? parseInt(awayScoreStr) : null;
   const actualMaxGoals = actualMaxGoalsStr ? parseInt(actualMaxGoalsStr) : null;
-  const homePenaltyScore = homePenaltyScoreStr ? parseInt(homePenaltyScoreStr) : null;
-  const awayPenaltyScore = awayPenaltyScoreStr ? parseInt(awayPenaltyScoreStr) : null;
-  const isPenaltyShootout = homePenaltyScore !== null && awayPenaltyScore !== null;
+  const homePenaltyScore = homePenaltyScoreStr !== '' ? parseInt(homePenaltyScoreStr) : null;
+  const awayPenaltyScore = awayPenaltyScoreStr !== '' ? parseInt(awayPenaltyScoreStr) : null;
+  const isPenaltyShootout = homePenaltyScore !== null && awayPenaltyScore !== null && (homePenaltyScore > 0 || awayPenaltyScore > 0);
 
   const previousMatch = await prisma.match.findUnique({ where: { id: matchId } });
   
