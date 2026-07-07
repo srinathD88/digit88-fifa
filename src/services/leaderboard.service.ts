@@ -165,9 +165,6 @@ export async function _getTournamentAwards() {
     let currentStreak = 0;
     let streak5CompletedAt: Date | null = null;
     let streak10CompletedAt: Date | null = null;
-    const streakWindow: { home: string; away: string }[] = [];
-    let streak5Matches: { home: string; away: string }[] = [];
-    let streak10Matches: { home: string; away: string }[] = [];
 
     for (const p of sortedPreds) {
       const match = p.match;
@@ -182,26 +179,16 @@ export async function _getTournamentAwards() {
 
       if (predictedWinner === match.winner) {
         currentStreak++;
-        streakWindow.push({ home: match.homeTeamName, away: match.awayTeamName });
-        if (currentStreak >= 5 && !streak5CompletedAt) {
-          streak5CompletedAt = new Date(match.startTime);
-          streak5Matches = streakWindow.slice(-5);
-        }
-        if (currentStreak >= 10 && !streak10CompletedAt) {
-          streak10CompletedAt = new Date(match.startTime);
-          streak10Matches = streakWindow.slice(-10);
-        }
+        if (currentStreak >= 5 && !streak5CompletedAt) streak5CompletedAt = new Date(match.startTime);
+        if (currentStreak >= 10 && !streak10CompletedAt) streak10CompletedAt = new Date(match.startTime);
       } else {
         currentStreak = 0;
-        streakWindow.length = 0;
       }
     }
 
     // --- Double Jeopardy: 2 consecutive perfect predictions (exact score + exact max goals) ---
     let doubleJeopardyCompletedAt: Date | null = null;
-    let doubleJeopardyMatches: { home: string; away: string }[] = [];
     let lastWasPerfect = false;
-    let prevPerfectMatch: { home: string; away: string } | null = null;
 
     for (const p of sortedPreds) {
       const match = p.match;
@@ -214,11 +201,7 @@ export async function _getTournamentAwards() {
         p.predictedMaxGoals === match.actualMaxGoals;
       const isPerfect = exactScore && exactMaxGoals;
 
-      if (isPerfect && lastWasPerfect && !doubleJeopardyCompletedAt) {
-        doubleJeopardyCompletedAt = new Date(match.startTime);
-        doubleJeopardyMatches = [prevPerfectMatch!, { home: match.homeTeamName, away: match.awayTeamName }];
-      }
-      prevPerfectMatch = isPerfect ? { home: match.homeTeamName, away: match.awayTeamName } : null;
+      if (isPerfect && lastWasPerfect && !doubleJeopardyCompletedAt) doubleJeopardyCompletedAt = new Date(match.startTime);
       lastWasPerfect = isPerfect;
     }
 
@@ -246,10 +229,7 @@ export async function _getTournamentAwards() {
       teamId: u.teamId,
       streak5CompletedAt,
       streak10CompletedAt,
-      streak5Matches,
-      streak10Matches,
       doubleJeopardyCompletedAt,
-      doubleJeopardyMatches,
       penaltyCorrectCount,
     };
   });

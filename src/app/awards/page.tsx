@@ -26,14 +26,6 @@ export default async function AwardsPage() {
     return `${w.score} pts`;
   };
 
-  const getMatchDetail = (award: any, w: any): { home: string; away: string }[] | null => {
-    if (award.calculation === "WINNING_STREAK")
-      return award.threshold === 5 ? (w.streak5Matches ?? []) : (w.streak10Matches ?? []);
-    if (award.calculation === "DOUBLE_JEOPARDY")
-      return w.doubleJeopardyMatches ?? [];
-    return null;
-  };
-
   const PODIUM_LABELS: Record<number, { label: string; emoji: string }> = {
     1: { label: "Overall Champion",  emoji: "🥇" },
     2: { label: "Runner-up",         emoji: "🥈" },
@@ -61,25 +53,12 @@ export default async function AwardsPage() {
                   <span className="text-xs font-bold text-muted-foreground uppercase tracking-widest">{tier.label}</span>
                 </div>
                 <div className="space-y-3 border-l-2 border-primary/20 pl-4 ml-2">
-                  {tier.winners.map((w: any) => {
-                    const matches = getMatchDetail(award, w);
-                    return (
-                      <div key={w.id} className="flex flex-col gap-1">
-                        <span className="font-black text-xl">{w.name}</span>
-                        <span className="text-sm font-bold text-accent">{getScoreDisplay(award, w)}</span>
-                        <span className="text-xs text-yellow-400 font-mono break-all">DBG calc={award.calculation} matches={JSON.stringify(matches)}</span>
-                        {matches && matches.length > 0 && (
-                          <div className="flex flex-wrap gap-1 mt-0.5">
-                            {matches.map((m, i) => (
-                              <span key={i} className="text-[10px] bg-white/5 border border-white/10 rounded px-1.5 py-0.5 text-muted-foreground font-medium">
-                                {m.home} vs {m.away}
-                              </span>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
+                  {tier.winners.map((w: any) => (
+                    <div key={w.id} className="flex flex-col">
+                      <span className="font-black text-xl">{w.name}</span>
+                      <span className="text-sm font-bold text-accent">{getScoreDisplay(award, w)}</span>
+                    </div>
+                  ))}
                 </div>
               </div>
             )
