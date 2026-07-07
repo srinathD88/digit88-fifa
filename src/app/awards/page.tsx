@@ -67,9 +67,7 @@ export default async function AwardsPage() {
                       <div key={w.id} className="flex flex-col gap-1">
                         <span className="font-black text-xl">{w.name}</span>
                         <span className="text-sm font-bold text-accent">{getScoreDisplay(award, w)}</span>
-                        {/* DEBUG — remove after checking */ (award.calculation === "WINNING_STREAK" || award.calculation === "DOUBLE_JEOPARDY") && (
-                          <span className="text-[9px] text-yellow-500/60 font-mono">dbg:{JSON.stringify(matches)}</span>
-                        )}
+                        <span className="text-xs text-yellow-400 font-mono break-all">DBG calc={award.calculation} matches={JSON.stringify(matches)}</span>
                         {matches && matches.length > 0 && (
                           <div className="flex flex-wrap gap-1 mt-0.5">
                             {matches.map((m, i) => (
