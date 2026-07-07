@@ -1,7 +1,8 @@
 import { unstable_cache } from "next/cache";
-import { 
-  getIndividualLeaderboard as _getIndividualLeaderboard, 
+import {
+  getIndividualLeaderboard as _getIndividualLeaderboard,
   getTeamLeaderboard as _getTeamLeaderboard,
+  getStageLeaderboard as _getStageLeaderboard,
   _getTournamentAwards
 } from "@/services/leaderboard.service";
 
@@ -11,7 +12,7 @@ export const getIndividualLeaderboard = unstable_cache(
   },
   ["individual-leaderboard"],
   {
-    revalidate: 60,
+    revalidate: 300,
     tags: ["leaderboard"],
   }
 );
@@ -22,10 +23,17 @@ export const getTeamLeaderboard = unstable_cache(
   },
   ["team-leaderboard"],
   {
-    revalidate: 60,
+    revalidate: 300,
     tags: ["leaderboard"],
   }
 );
+
+export const getStageLeaderboard = (stage: string) =>
+  unstable_cache(
+    async () => _getStageLeaderboard(stage),
+    [`stage-leaderboard-${stage}`],
+    { revalidate: 300, tags: ["leaderboard"] }
+  )();
 
 // Version bumped when the shape of award data changes (new fields on winner objects).
 // This forces a cache miss on the next deploy so stale filesystem cache doesn't serve old shapes.
@@ -37,7 +45,7 @@ export const getTournamentAwards = unstable_cache(
   },
   [`tournament-awards-${AWARDS_CACHE_VERSION}`],
   {
-    revalidate: 60,
+    revalidate: 300,
     tags: ["leaderboard"],
   }
 );

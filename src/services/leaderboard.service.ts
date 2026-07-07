@@ -32,6 +32,34 @@ export async function getIndividualLeaderboard() {
   });
 }
 
+export async function getStageLeaderboard(stage: string) {
+  const users = await prisma.user.findMany({
+    select: {
+      id: true,
+      name: true,
+      teamId: true,
+      team: { select: { name: true, flagUrl: true } },
+      predictions: {
+        where: { match: { stage: stage as any, status: 'FINISHED' } },
+        select: { pointsAwarded: true }
+      }
+    }
+  });
+
+  return users
+    .map(u => ({
+      userId: u.id,
+      name: u.name || 'Unknown',
+      teamId: u.teamId,
+      team: u.team?.name || 'No Team',
+      flagUrl: u.team?.flagUrl || null,
+      points: u.predictions.reduce((s, p) => s + (p.pointsAwarded || 0), 0),
+      predictionCount: u.predictions.length,
+    }))
+    .filter(u => u.predictionCount > 0)
+    .sort((a, b) => b.points - a.points || a.name.localeCompare(b.name));
+}
+
 export async function getTeamLeaderboard() {
   const individualScores = await getIndividualLeaderboard();
   

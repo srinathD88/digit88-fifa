@@ -112,7 +112,7 @@ export default async function Dashboard() {
                 <div className="flex flex-col space-y-4">
                   <div className="flex justify-between items-center px-4 py-3 bg-secondary/50 rounded-lg">
                     <span className="text-sm text-muted-foreground uppercase tracking-wider font-semibold">Status</span>
-                    <span className={`font-bold ${match.status === 'IN_PLAY' ? 'text-accent animate-pulse' : 'text-primary'}`}>{match.status}</span>
+                    <span className={`font-bold ${match.status === 'IN_PLAY' ? 'text-accent animate-pulse' : 'text-primary'}`}>{match.status === 'IN_PLAY' ? 'LIVE' : match.status}</span>
                   </div>
                   
                   {match.status === 'FINISHED' && (
