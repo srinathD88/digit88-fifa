@@ -265,6 +265,7 @@ export async function _getTournamentAwards() {
       id: u.id,
       name: u.name || "Unknown",
       totalPoints,
+      bonusPoints: u.bonusPoints,
       perfectCount,
       exactScoreCount,
       consistentCount,
