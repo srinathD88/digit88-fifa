@@ -26,10 +26,11 @@ export async function getIndividualLeaderboard() {
       points: predictionPoints + user.bonusPoints,
       perfectCount
     };
-  }).sort((a, b) => {
-    if (b.points !== a.points) return b.points - a.points;
-    return b.perfectCount - a.perfectCount;
-  });
+  }).sort((a, b) =>
+    b.points - a.points ||
+    b.perfectCount - a.perfectCount ||
+    a.name.localeCompare(b.name)
+  );
 }
 
 export async function getStageLeaderboard(stage: string) {
@@ -53,11 +54,16 @@ export async function getStageLeaderboard(stage: string) {
       teamId: u.teamId,
       team: u.team?.name || 'No Team',
       flagUrl: u.team?.flagUrl || null,
-      points: u.predictions.reduce((s, p) => s + (p.pointsAwarded || 0), 0),
+      points: u.predictions.reduce((s: number, p: any) => s + (p.pointsAwarded || 0), 0),
+      perfectCount: u.predictions.filter((p: any) => (p.pointsAwarded || 0) >= 55).length,
       predictionCount: u.predictions.length,
     }))
     .filter(u => u.predictionCount > 0)
-    .sort((a, b) => b.points - a.points || a.name.localeCompare(b.name));
+    .sort((a, b) =>
+      b.points - a.points ||
+      b.perfectCount - a.perfectCount ||
+      a.name.localeCompare(b.name)
+    );
 }
 
 export async function getTeamLeaderboard() {
