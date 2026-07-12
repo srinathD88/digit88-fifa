@@ -60,7 +60,7 @@ export async function getStageLeaderboard(stage: string) {
       flagUrl: u.team?.flagUrl || null,
       points: u.predictions.reduce((s: number, p: any) => s + (p.pointsAwarded || 0), 0),
       perfectCount: u.predictions.filter((p: any) => (p.pointsAwarded || 0) >= 55).length,
-      exactScoreCount: u.predictions.filter((p: any) => (p.pointsAwarded || 0) >= 35).length,
+      exactScoreCount,
       predictionCount: u.predictions.length,
     }))
     .filter(u => u.predictionCount > 0)
@@ -192,10 +192,12 @@ export async function _getTournamentAwards() {
       (a, b) => new Date(a.match.startTime).getTime() - new Date(b.match.startTime).getTime()
     );
 
+    let exactScoreCount = 0;
     u.predictions.forEach(p => {
       const pts = p.pointsAwarded || 0;
       totalPoints += pts;
       if (pts >= 55) perfectCount++;
+      if (pts >= 35) exactScoreCount++;
       if (pts > 0) consistentCount++;
       const stage = p.match?.stage;
       if (stage) stagePoints[stage] = (stagePoints[stage] || 0) + pts;
@@ -264,6 +266,7 @@ export async function _getTournamentAwards() {
       name: u.name || "Unknown",
       totalPoints,
       perfectCount,
+      exactScoreCount,
       consistentCount,
       stagePoints,
       teamId: u.teamId,
@@ -276,24 +279,14 @@ export async function _getTournamentAwards() {
 
   // --- Rising Star: biggest rank jump across consecutive stage snapshots ---
   const computeRankSnapshot = (stages: string[]): Map<string, number> => {
-    const stageSet = new Set(stages);
-    const pts = new Map<string, number>();
-    for (const u of usersData) {
-      let p = u.bonusPoints;
-      for (const pred of u.predictions) {
-        if (pred.match && stageSet.has(pred.match.stage)) p += (pred.pointsAwarded || 0);
-      }
-      pts.set(u.id, p);
-    }
-    const sorted = [...pts.entries()].sort((a, b) => b[1] - a[1]);
+    const sorted = [...users].sort((a: any, b: any) => {
+      const apts = stages.reduce((s, st) => s + (a.stagePoints[st] || 0), 0) + a.bonusPoints;
+      const bpts = stages.reduce((s, st) => s + (b.stagePoints[st] || 0), 0) + b.bonusPoints;
+      // Mirror the leaderboard tiebreaker chain (using all-time perfectCount/exactScoreCount as proxy)
+      return bpts - apts || b.perfectCount - a.perfectCount || b.exactScoreCount - a.exactScoreCount || a.name.localeCompare(b.name);
+    });
     const rankMap = new Map<string, number>();
-    let currentRank = 1;
-    let currentPts = -1;
-    for (let i = 0; i < sorted.length; i++) {
-      const [uid, score] = sorted[i];
-      if (score !== currentPts) { currentRank = i + 1; currentPts = score; }
-      rankMap.set(uid, currentRank);
-    }
+    sorted.forEach((u: any, i: number) => rankMap.set(u.id, i + 1));
     return rankMap;
   };
 
