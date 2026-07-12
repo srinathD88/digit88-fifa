@@ -60,7 +60,7 @@ export async function getStageLeaderboard(stage: string) {
       flagUrl: u.team?.flagUrl || null,
       points: u.predictions.reduce((s: number, p: any) => s + (p.pointsAwarded || 0), 0),
       perfectCount: u.predictions.filter((p: any) => (p.pointsAwarded || 0) >= 55).length,
-      exactScoreCount,
+      exactScoreCount: u.predictions.filter((p: any) => (p.pointsAwarded || 0) >= 35).length,
       predictionCount: u.predictions.length,
     }))
     .filter(u => u.predictionCount > 0)
