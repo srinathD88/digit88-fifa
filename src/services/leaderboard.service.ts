@@ -14,9 +14,11 @@ export async function getIndividualLeaderboard() {
 
   return users.map(user => {
     const predictionPoints = user.predictions.reduce((sum, p) => sum + (p.pointsAwarded || 0), 0);
-    // A perfect prediction scores at least 55 points (10 Winner + 25 Exact + 20 Bonus).
+    // Perfect: exact score + winner + max goals (≥55 pts)
     const perfectCount = user.predictions.filter(p => (p.pointsAwarded || 0) >= 55).length;
-    
+    // Exact score + winner (≥35 pts). ≥25 is ambiguous: winner+maxGoals+nearMiss can also reach 25.
+    const exactScoreCount = user.predictions.filter(p => (p.pointsAwarded || 0) >= 35).length;
+
     return {
       userId: user.id,
       name: user.name || "Unknown",
@@ -24,11 +26,13 @@ export async function getIndividualLeaderboard() {
       flagUrl: user.team?.flagUrl || null,
       teamId: user.teamId,
       points: predictionPoints + user.bonusPoints,
-      perfectCount
+      perfectCount,
+      exactScoreCount
     };
   }).sort((a, b) =>
     b.points - a.points ||
     b.perfectCount - a.perfectCount ||
+    b.exactScoreCount - a.exactScoreCount ||
     a.name.localeCompare(b.name)
   );
 }
@@ -56,12 +60,14 @@ export async function getStageLeaderboard(stage: string) {
       flagUrl: u.team?.flagUrl || null,
       points: u.predictions.reduce((s: number, p: any) => s + (p.pointsAwarded || 0), 0),
       perfectCount: u.predictions.filter((p: any) => (p.pointsAwarded || 0) >= 55).length,
+      exactScoreCount: u.predictions.filter((p: any) => (p.pointsAwarded || 0) >= 35).length,
       predictionCount: u.predictions.length,
     }))
     .filter(u => u.predictionCount > 0)
     .sort((a, b) =>
       b.points - a.points ||
       b.perfectCount - a.perfectCount ||
+      b.exactScoreCount - a.exactScoreCount ||
       a.name.localeCompare(b.name)
     );
 }
