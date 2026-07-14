@@ -210,7 +210,21 @@ export async function _getTournamentAwards() {
 
     for (const p of sortedPreds) {
       const match = p.match;
-      if (!match?.winner) continue;
+
+      // Determine actual winner for streak purposes:
+      // Penalty matches → regular time was a draw regardless of who won on penalties
+      // Regular draws (group stage etc.) → also "DRAW"
+      // Unfinished matches (no score) → skip
+      let actualWinner: string;
+      if (match.homePenaltyScore !== null) {
+        actualWinner = "DRAW";
+      } else if (match.homeScore !== null && match.awayScore !== null) {
+        if (match.homeScore > match.awayScore) actualWinner = match.homeTeamName;
+        else if (match.awayScore > match.homeScore) actualWinner = match.awayTeamName;
+        else actualWinner = "DRAW";
+      } else {
+        continue; // match not finished
+      }
 
       const predH = p.predictedHomeGoals ?? 0;
       const predA = p.predictedAwayGoals ?? 0;
@@ -219,7 +233,7 @@ export async function _getTournamentAwards() {
       else if (predA > predH) predictedWinner = match.awayTeamName;
       else predictedWinner = "DRAW";
 
-      if (predictedWinner === match.winner) {
+      if (predictedWinner === actualWinner) {
         currentStreak++;
         if (currentStreak >= 5 && !streak5CompletedAt) streak5CompletedAt = new Date(match.startTime);
         if (currentStreak >= 10 && !streak10CompletedAt) streak10CompletedAt = new Date(match.startTime);
@@ -416,28 +430,36 @@ export async function _getTournamentAwards() {
       return;
     }
 
-    // --- Winning Streak 5 & 10 (first 2 to achieve) ---
+    // --- Winning Streak 5 & 10 (first 5 to achieve, ranked by who got there first) ---
     if (award.calculation === "WINNING_STREAK") {
       const field = award.threshold === 5 ? 'streak5CompletedAt' : 'streak10CompletedAt';
       const winners = users
         .filter(u => u[field] !== null)
         .sort((a, b) => (a[field] as Date).getTime() - (b[field] as Date).getTime())
-        .slice(0, 2);
+        .slice(0, 5);
       if (winners.length === 0) return;
       awardsList.push({ ...award, rankings: { first: winners.map(w => ({ ...w, score: award.threshold })), second: [], third: [] } });
-      winners.forEach(w => addUserAward(w.id, { category: award.title, type: award.type, rank: 1, badge: award.badgePrefix, title: award.title }));
+      winners.forEach((w, i) => {
+        const rank = i + 1;
+        const ordinal = ['1st', '2nd', '3rd', '4th', '5th'][i];
+        addUserAward(w.id, { category: award.title, type: award.type, rank, badge: `${award.badgePrefix}`, title: `${award.title} — ${ordinal}` });
+      });
       return;
     }
 
-    // --- Double Jeopardy (first 2 to achieve) ---
+    // --- Double Jeopardy (first 5 to achieve, ranked by who got there first) ---
     if (award.calculation === "DOUBLE_JEOPARDY") {
       const winners = users
         .filter(u => u.doubleJeopardyCompletedAt !== null)
         .sort((a, b) => a.doubleJeopardyCompletedAt!.getTime() - b.doubleJeopardyCompletedAt!.getTime())
-        .slice(0, 2);
+        .slice(0, 5);
       if (winners.length === 0) return;
       awardsList.push({ ...award, rankings: { first: winners.map(w => ({ ...w, score: 2 })), second: [], third: [] } });
-      winners.forEach(w => addUserAward(w.id, { category: award.title, type: award.type, rank: 1, badge: award.badgePrefix, title: award.title }));
+      winners.forEach((w, i) => {
+        const rank = i + 1;
+        const ordinal = ['1st', '2nd', '3rd', '4th', '5th'][i];
+        addUserAward(w.id, { category: award.title, type: award.type, rank, badge: award.badgePrefix, title: `${award.title} — ${ordinal}` });
+      });
       return;
     }
 
