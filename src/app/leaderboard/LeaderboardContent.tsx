@@ -73,17 +73,10 @@ export default async function LeaderboardContent({
           <div className="text-muted-foreground text-xs flex items-center gap-1.5 mt-0.5">
             {user.flagUrl && <img src={user.flagUrl} alt="" className="w-4 h-3 rounded-sm object-cover shrink-0" />}
             <span className="truncate">{user.team}</span>
-            {/* PERFECT COUNT BADGE — comment out this block to hide */}
-            {(user.perfectCount > 0) && (
-              <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-amber-500/10 text-amber-400 font-bold border border-amber-500/20 shrink-0">
-                🎯 {user.perfectCount}
-              </span>
-            )}
-            {/* END PERFECT COUNT BADGE */}
           </div>
-          {badges && badges.length > 0 && (
+          {badges && badges.some((a: any) => a.type === "stage") && (
             <div className="flex flex-wrap gap-1 mt-1.5">
-              {badges.map((award: any, i: number) => (
+              {badges.filter((a: any) => a.type === "stage").map((award: any, i: number) => (
                 <span
                   key={i}
                   title={award.title}
